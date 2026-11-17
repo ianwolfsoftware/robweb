@@ -1941,6 +1941,81 @@
       "bytes": 15436,
       "rights": "robin-own-site",
       "notes": "Downloaded from Robin's public WordPress uploads."
+    },
+    {
+      "id": "robc-app-logo-bright",
+      "localPath": "assets/brand/logo.svg",
+      "originalUrl": "wolf:/root/robc/public/logo.svg",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "RC",
+      "width": 437,
+      "height": 222,
+      "bytes": 4571,
+      "rights": "robin-own-app",
+      "notes": "Copied unchanged from the RC Calculators V3 public assets for dark surfaces; the mark is not recoloured or distorted."
+    },
+    {
+      "id": "robc-app-logo-steel",
+      "localPath": "assets/brand/logo-steel.svg",
+      "originalUrl": "wolf:/root/robc/public/logo-steel.svg",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "RC",
+      "width": 441,
+      "height": 224,
+      "bytes": 5027,
+      "rights": "robin-own-app",
+      "notes": "Copied unchanged from the RC Calculators V3 public assets for light surfaces; the mark is not recoloured or distorted."
+    },
+    {
+      "id": "robc-app-touch-icon",
+      "localPath": "assets/brand/apple-touch-icon.png",
+      "originalUrl": "wolf:/root/robc/public/icons/icon-192.png",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "RC app icon",
+      "width": 192,
+      "height": 192,
+      "bytes": 9545,
+      "rights": "robin-own-app",
+      "notes": "Copied unchanged from the RC Calculators V3 public assets for the site touch icon."
+    },
+    {
+      "id": "robc-app-v3-login-capture",
+      "localPath": "assets/app/v3-login-screen.png",
+      "originalUrl": "wolf-local:http://127.0.0.1:6273/",
+      "page": "https://robweb.wolf.uk.com/app/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/app/"
+      ],
+      "alt": "RC Calculators V3 sign-in screen",
+      "width": 390,
+      "height": 844,
+      "bytes": 148193,
+      "rights": "robin-own-app",
+      "notes": "Fresh read-only browser capture of Robin's own RC Calculators V3 app on 17 November 2026; no account or customer data was used. WebP and AVIF derivatives are in assets/app."
+    },
+    {
+      "id": "robweb-social-card",
+      "localPath": "assets/brand/social-card.png",
+      "originalUrl": "derived:robc-127+robc-128",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Robin Clevett working on a roof frame with the Robin Clevett logo",
+      "width": 1200,
+      "height": 630,
+      "bytes": 447018,
+      "rights": "derived-robin-assets",
+      "notes": "Locally composed only from inventoried Robin-owned photograph robc-127 and immutable logo robc-128; no stock or generated imagery."
     }
   ]
 }
