@@ -1,0 +1,32 @@
+{
+  "name": "robweb",
+  "version": "0.2.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build:client": "vite build",
+    "build": "npm run build:client && tsx scripts/prerender.tsx",
+    "check": "tsc --noEmit",
+    "inventory:check": "python3 scripts/verify_inventory.py",
+    "shell:check": "node scripts/verify-shell.mjs",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "@vitejs/plugin-react": "latest",
+    "react": "latest",
+    "react-dom": "latest",
+    "vite": "latest"
+  },
+  "devDependencies": {
+    "@types/react": "latest",
+    "@types/react-dom": "latest",
+    "@types/node": "latest",
+    "autoprefixer": "latest",
+    "postcss": "latest",
+    "puppeteer-core": "latest",
+    "tailwindcss": "^3.4.17",
+    "tsx": "latest",
+    "typescript": "latest"
+  }
+}
