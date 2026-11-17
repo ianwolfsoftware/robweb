@@ -1,13 +1,25 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import puppeteer from 'puppeteer-core';
 
 const port = 4173;
 const baseUrl = `http://127.0.0.1:${port}`;
 const evidenceDir = process.env.ROBWEB_EVIDENCE_DIR;
-const routes = ['/', '/app/', '/shop/', '/videos/', '/about/', '/services/', '/projects/', '/robin-recommends/', '/contact/', '/register-interest/', '/legal/privacy/', '/legal/terms/', '/legal/disclaimer/', '/legal/cookies/', '/calculator-app/', '/calculator-app/privacy/', '/calculator-app/terms/', '/404/'];
+const routes = [
+  ['home', '/'], ['app', '/app/'], ['shop', '/shop/'], ['videos', '/videos/'], ['about', '/about/'],
+  ['services', '/services/'], ['projects', '/projects/'], ['recommends', '/robin-recommends/'],
+  ['contact', '/contact/'], ['register-interest', '/register-interest/'], ['privacy', '/legal/privacy/'],
+  ['terms', '/legal/terms/'], ['disclaimer', '/legal/disclaimer/'], ['cookies', '/legal/cookies/'],
+  ['calculator-app', '/calculator-app/'], ['calculator-privacy', '/calculator-app/privacy/'],
+  ['calculator-terms', '/calculator-app/terms/'], ['404', '/404/'],
+];
+const viewports = [
+  ['mobile', { width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 }],
+  ['desktop', { width: 1440, height: 900, isMobile: false, deviceScaleFactor: 1 }],
+];
+const themes = ['dark', 'light'];
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -18,9 +30,7 @@ async function waitForServer() {
     try {
       const response = await fetch(baseUrl);
       if (response.ok) return;
-    } catch (error) {
-      lastError = error;
-    }
+    } catch (error) { lastError = error; }
     await new Promise((resolve) => setTimeout(resolve, 125));
   }
   throw new Error(`Preview server did not start: ${lastError ?? 'unknown error'}`);
@@ -32,75 +42,140 @@ try {
   const browser = await puppeteer.launch({
     executablePath: process.env.CHROME_BIN || '/usr/bin/google-chrome',
     headless: true,
-    args: ['--no-sandbox', '--disable-setuid-sandbox'],
+    args: ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--enable-webgl', '--use-angle=swiftshader'],
   });
   const errors = [];
-  let currentRoute = 'before navigation';
   const externalRequests = new Set();
-  const desktop = await browser.newPage();
-  await desktop.setViewport({ width: 1440, height: 1000, deviceScaleFactor: 1 });
-  desktop.on('pageerror', (error) => errors.push(`${currentRoute}: pageerror: ${error.message}`));
-  desktop.on('request', (request) => {
-    const url = new URL(request.url());
-    if (url.origin !== baseUrl && url.protocol !== 'data:') externalRequests.add(url.origin);
-  });
+  const results = [];
 
-  for (const route of routes) {
-    currentRoute = route;
-    const response = await desktop.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle0' });
-    assert.equal(response?.status(), 200, `${route} should return 200`);
-    assert.match(await response.text(), /<h1[ >]/, `${route} view-source contains rendered heading HTML`);
-    const summary = await desktop.evaluate(() => ({
-      noindex: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
-      h1: document.querySelector('h1')?.textContent?.trim(),
-      main: document.querySelector('main')?.id,
-    }));
-    assert.equal(summary.noindex, 'noindex, nofollow, noarchive', `${route} has noindex metadata`);
-    assert.ok(summary.h1, `${route} has a rendered h1`);
-    assert.equal(summary.main, 'content', `${route} exposes the main landmark`);
+  for (const [viewportName, viewport] of viewports) {
+    for (const theme of themes) {
+      const page = await browser.newPage();
+      await page.setViewport(viewport);
+      await page.setCacheEnabled(false);
+      await page.evaluateOnNewDocument((selectedTheme) => {
+        localStorage.setItem('robweb-theme', selectedTheme);
+        localStorage.setItem('robweb-analytics-consent-v1', 'rejected');
+      }, theme);
+      let currentRoute = 'before navigation';
+      page.on('pageerror', (error) => errors.push(`${viewportName}/${theme}/${currentRoute}: ${error.message}`));
+      page.on('request', (request) => {
+        const url = new URL(request.url());
+        if (url.origin !== baseUrl && url.protocol !== 'data:') externalRequests.add(url.origin);
+      });
+
+      for (const [slug, route] of routes) {
+        currentRoute = route;
+        const response = await page.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle0' });
+        assert.equal(response?.status(), 200, `${route} should return 200`);
+        assert.match(await response.text(), /<h1[ >]/, `${route} view-source contains rendered heading HTML`);
+        await page.waitForSelector(`.site.theme-${theme}`);
+        if (route === '/') await page.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') !== 'loading', { timeout: 7000 });
+        await new Promise((resolve) => setTimeout(resolve, 120));
+        const summary = await page.evaluate(() => ({
+          noindex: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
+          h1Count: document.querySelectorAll('h1').length,
+          h1: document.querySelector('h1')?.textContent?.trim(),
+          main: document.querySelector('main')?.id,
+          overflow: document.documentElement.scrollWidth > document.documentElement.clientWidth,
+          headerLogo: !!document.querySelector('.site-header .brand-logo-dark'),
+          footerLogo: !!document.querySelector('.site-footer .brand-logo-dark'),
+          favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href'),
+          touchIcon: document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'),
+          socialImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content'),
+          webglState: document.querySelector('.webgl-slot')?.getAttribute('data-state') || null,
+        }));
+        assert.equal(summary.noindex, 'noindex, nofollow, noarchive', `${route} has noindex metadata`);
+        assert.equal(summary.h1Count, 1, `${route} has exactly one h1`);
+        assert.ok(summary.h1, `${route} has a visible heading`);
+        assert.equal(summary.main, 'content', `${route} exposes the main landmark`);
+        assert.equal(summary.overflow, false, `${route} has no horizontal overflow at ${viewportName}`);
+        assert.equal(summary.headerLogo, true, `${route} includes the real header logo`);
+        assert.equal(summary.footerLogo, true, `${route} includes the real footer logo`);
+        assert.ok(summary.favicon, `${route} exposes a favicon`);
+        assert.equal(summary.touchIcon, '/brand/apple-touch-icon.png', `${route} exposes the touch icon`);
+        assert.match(summary.socialImage || '', /social-card\.png$/, `${route} exposes the logo social image`);
+        if (route === '/') assert.ok(['ready', 'fallback', 'static'].includes(summary.webglState), 'home exposes a rendered WebGL layer or static fallback');
+        await page.evaluate(async () => {
+          const pause = () => new Promise((resolve) => setTimeout(resolve, 28));
+          const step = Math.max(420, Math.floor(innerHeight * .7));
+          for (let top = 0; top < document.documentElement.scrollHeight; top += step) {
+            scrollTo(0, top);
+            await pause();
+          }
+          scrollTo(0, 0);
+          await pause();
+        });
+        await new Promise((resolve) => setTimeout(resolve, 650));
+        const screenshot = evidenceDir ? `${evidenceDir}/${theme}-${viewportName}-${slug}.png` : null;
+        if (screenshot) await page.screenshot({ path: screenshot, fullPage: true });
+        results.push({ route, slug, viewport: viewportName, theme, status: response?.status(), screenshot, ...summary });
+      }
+
+      await page.goto(baseUrl, { waitUntil: 'networkidle0' });
+      await page.keyboard.press('Tab');
+      assert.equal(await page.evaluate(() => document.activeElement?.className), 'skip-link', 'first keyboard target is skip link');
+      if (viewportName === 'mobile') {
+        const box = await page.$eval('.menu-toggle', (element) => { const rect = element.getBoundingClientRect(); return { width: rect.width, height: rect.height }; });
+        assert.ok(box.width >= 44 && box.height >= 44, 'phone menu trigger is at least 44px');
+        await page.click('.menu-toggle');
+        await page.waitForSelector('.mobile-menu-panel');
+        const links = await page.$$eval('.mobile-menu-panel nav a', (elements) => elements.map((element) => { const rect = element.getBoundingClientRect(); return { height: rect.height, text: element.textContent?.trim() }; }));
+        assert.equal(links.length, 10, 'full phone menu exposes all public routes');
+        assert.ok(links.every((link) => link.height >= 44), 'all phone menu routes have large tap targets');
+        await page.keyboard.press('Escape');
+        await page.waitForFunction(() => !document.querySelector('.mobile-menu-panel'));
+      } else {
+        assert.equal(await page.$eval('.desktop-nav', (element) => getComputedStyle(element).display), 'flex', 'desktop navigation is visible');
+      }
+      const beforeTheme = await page.$eval('.site', (element) => element.className);
+      await page.click('.theme-toggle');
+      const afterTheme = await page.$eval('.site', (element) => element.className);
+      assert.notEqual(beforeTheme, afterTheme, 'theme control changes appearance');
+      await page.close();
+    }
   }
 
-  await desktop.goto(baseUrl, { waitUntil: 'networkidle0' });
-  assert.equal(await desktop.$('script[data-robweb-ga]'), null, 'GA4 script is absent before consent');
-  await desktop.keyboard.press('Tab');
-  assert.equal(await desktop.evaluate(() => document.activeElement?.className), 'skip-link', 'first keyboard target is skip link');
-  await desktop.click('.theme-toggle');
-  assert.ok(await desktop.evaluate(() => document.querySelector('.site')?.classList.contains('theme-dark')), 'theme control changes appearance');
-  assert.equal(await desktop.$eval('.desktop-nav', (element) => getComputedStyle(element).display), 'flex', 'desktop navigation is visible');
-  if (evidenceDir) await desktop.screenshot({ path: `${evidenceDir}/desktop-home.png`, fullPage: true });
+  const reduced = await browser.newPage();
+  await reduced.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
+  await reduced.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
+  await reduced.goto(baseUrl, { waitUntil: 'networkidle0' });
+  await reduced.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') === 'fallback');
+  const reducedState = await reduced.$eval('.webgl-slot', (element) => ({ state: element.getAttribute('data-state'), reason: element.getAttribute('data-webgl-reason') }));
+  assert.deepEqual(reducedState, { state: 'fallback', reason: 'reduced-motion' }, 'reduced motion keeps the designed static fallback');
+  await reduced.close();
 
-  await desktop.goto(`${baseUrl}/admin/`, { waitUntil: 'networkidle0' });
-  await desktop.waitForSelector('.admin-login-card form');
-  assert.match(await desktop.$eval('h1', (element) => element.textContent ?? ''), /Sign in securely/, 'admin defaults to secure sign in');
-  assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'desktop admin has no horizontal overflow');
-  if (evidenceDir) await desktop.screenshot({ path: `${evidenceDir}/desktop-admin.png`, fullPage: true });
+  const performancePage = await browser.newPage();
+  await performancePage.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
+  await performancePage.setCacheEnabled(false);
+  await performancePage.evaluateOnNewDocument(() => {
+    localStorage.setItem('robweb-theme', 'dark');
+    localStorage.setItem('robweb-analytics-consent-v1', 'rejected');
+    window.__ROBWEB_METRICS__ = { lcp: 0, cls: 0 };
+    new PerformanceObserver((list) => { const entries = list.getEntries(); window.__ROBWEB_METRICS__.lcp = entries.at(-1)?.startTime || 0; }).observe({ type: 'largest-contentful-paint', buffered: true });
+    new PerformanceObserver((list) => { for (const entry of list.getEntries()) if (!entry.hadRecentInput) window.__ROBWEB_METRICS__.cls += entry.value; }).observe({ type: 'layout-shift', buffered: true });
+  });
+  await performancePage.goto(baseUrl, { waitUntil: 'networkidle0' });
+  await new Promise((resolve) => setTimeout(resolve, 1200));
+  const performance = await performancePage.evaluate(() => window.__ROBWEB_METRICS__);
+  assert.ok(performance.lcp > 0 && performance.lcp < 2500, `mobile local LCP ${performance.lcp}ms should be under 2.5s`);
+  assert.ok(performance.cls < .03, `mobile local CLS ${performance.cls} should be approximately zero`);
+  await performancePage.close();
 
-  const mobile = await browser.newPage();
-  await mobile.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
-  mobile.on('pageerror', (error) => errors.push(`mobile: pageerror: ${error.message}`));
-  mobile.on('request', (request) => {
-    const url = new URL(request.url());
-    if (url.origin !== baseUrl && url.protocol !== 'data:') externalRequests.add(url.origin);
-  });
-  await mobile.goto(`${baseUrl}/shop/`, { waitUntil: 'networkidle0' });
-  const mobileControl = await mobile.$eval('.mobile-nav summary', (element) => {
-    const rect = element.getBoundingClientRect();
-    return { width: rect.width, height: rect.height };
-  });
-  assert.ok(mobileControl.width >= 44 && mobileControl.height >= 44, 'mobile menu has a 44px touch target');
-  await mobile.click('.mobile-nav summary');
-  assert.equal(await mobile.$$eval('.mobile-nav nav a', (links) => links.length), 8, 'mobile menu exposes every public navigation route');
-  assert.equal(await mobile.$eval('.desktop-nav', (element) => getComputedStyle(element).display), 'none', 'desktop navigation is hidden on mobile');
-  if (evidenceDir) await mobile.screenshot({ path: `${evidenceDir}/mobile-tools-and-jigs.png`, fullPage: true });
-  await mobile.goto(`${baseUrl}/admin/`, { waitUntil: 'networkidle0' });
-  await mobile.waitForSelector('.admin-login-card form');
-  assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'mobile admin has no horizontal overflow');
-  if (evidenceDir) await mobile.screenshot({ path: `${evidenceDir}/mobile-admin.png`, fullPage: true });
+  const admin = await browser.newPage();
+  await admin.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
+  await admin.goto(`${baseUrl}/admin/`, { waitUntil: 'networkidle0' });
+  await admin.waitForSelector('.admin-login-card form');
+  assert.match(await admin.$eval('h1', (element) => element.textContent ?? ''), /Sign in securely/, 'admin defaults to secure sign in');
+  assert.equal(await admin.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'phone admin has no horizontal overflow');
+  await admin.close();
 
   await browser.close();
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
   assert.deepEqual([...externalRequests], [], `unexpected external requests: ${[...externalRequests].join(', ')}`);
-  console.log(JSON.stringify({ ok: true, routes: routes.length, keyboard: 'skip link first', mobileTouchTarget: mobileControl, externalRequests: [] }));
+  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, results, reducedMotion: reducedState, performance, externalRequests: [] };
+  if (evidenceDir) await writeFile(`${evidenceDir}/browser-evidence.json`, `${JSON.stringify(evidence, null, 2)}\n`);
+  console.log(JSON.stringify({ ok: true, screenshots: results.length, routes: routes.length, reducedMotion: reducedState, performance, externalRequests: [] }));
 } finally {
   server.kill('SIGTERM');
 }

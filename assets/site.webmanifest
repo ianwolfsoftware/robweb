@@ -1,0 +1,16 @@
+{
+  "name": "Robin Clevett",
+  "short_name": "RC",
+  "description": "Robin Clevett: construction, practical videos, tools and calculators.",
+  "start_url": "/",
+  "display": "browser",
+  "background_color": "#090b0e",
+  "theme_color": "#090b0e",
+  "icons": [
+    {
+      "src": "/brand/apple-touch-icon.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    }
+  ]
+}
