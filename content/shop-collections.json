@@ -1,0 +1,15 @@
+{
+  "sourceUrl": "https://toolsandjigs.com/collections.json",
+  "fetchedAt": "2026-11-17T13:39:34Z",
+  "store": {
+    "publicDomain": "https://toolsandjigs.com",
+    "shopifyDomain": "https://cf7084-4.myshopify.com"
+  },
+  "status": "not-requested-after-products-rate-limit",
+  "detail": "Collections were not requested after products.json returned HTTP 429; this avoids working around the storefront rate limit.",
+  "fallbackOptions": [
+    "Robin can provide a Shopify Storefront API token with read-only product and collection access.",
+    "Robin can provide an approved manual product/collection feed (CSV or Shopify export) for a one-off inventory."
+  ],
+  "collections": []
+}

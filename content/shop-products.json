@@ -1,0 +1,18 @@
+{
+  "sourceUrl": "https://toolsandjigs.com/products.json?limit=250",
+  "fetchedAt": "2026-11-17T13:39:34Z",
+  "store": {
+    "publicDomain": "https://toolsandjigs.com",
+    "shopifyDomain": "https://cf7084-4.myshopify.com",
+    "domainEvidence": "The public storefront root returned HTTP 200. Public DNS for cf7084-4.myshopify.com resolves to shops.myshopify.com."
+  },
+  "status": "blocked",
+  "httpStatus": 429,
+  "retryAfterSeconds": 60,
+  "detail": "The public products endpoint rate-limited the single inventory request. It was not retried or bypassed.",
+  "fallbackOptions": [
+    "Robin can provide a Shopify Storefront API token with read-only product and collection access.",
+    "Robin can provide an approved manual product/collection feed (CSV or Shopify export) for a one-off inventory."
+  ],
+  "products": []
+}
