@@ -4,12 +4,13 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 from pathlib import Path
 
 
 ROOT = Path(__file__).resolve().parents[1]
-EVIDENCE = Path("/home/ianc/brains/codex/work/robweb-08dff276-content-inventory/evidence")
+EVIDENCE = Path(os.environ.get("ROBWEB_INVENTORY_EVIDENCE_DIR", "/tmp/robweb-inventory-evidence"))
 EXPECTED_PAGES = {
     "home", "projects", "about-robin-clevett-listed-and-new-build", "our-services",
     "contact-robin-clevett", "disclaimer", "terms-and-conditions", "youtube",
@@ -40,8 +41,8 @@ def main() -> int:
         missing = required_asset_keys - set(asset)
         if missing:
             failures.append(f"asset {asset.get('id')} missing {sorted(missing)}")
-        if asset["rights"] == "robin-own-site":
-            if not asset["localPath"] or not (ROOT / asset["localPath"]).is_file():
+        if asset["localPath"]:
+            if not (ROOT / asset["localPath"]).is_file():
                 failures.append(f"missing local Robin asset {asset['id']}")
             elif asset["bytes"] != (ROOT / asset["localPath"]).stat().st_size:
                 failures.append(f"byte count mismatch for {asset['id']}")
@@ -57,10 +58,28 @@ def main() -> int:
         if missing:
             failures.append(f"video {video.get('id')} missing {sorted(missing)}")
 
-    for name, key in (("shop-products.json", "products"), ("shop-collections.json", "collections")):
-        shop = json.loads((ROOT / "content" / name).read_text(encoding="utf-8"))
-        if key not in shop or not isinstance(shop[key], list):
-            failures.append(f"{name} lacks a {key} list")
+    shop = json.loads((ROOT / "content/shop-products.json").read_text(encoding="utf-8"))
+    products = shop.get("products")
+    product_keys = {"title", "handle", "price", "currency", "images", "shortDescription", "available", "url"}
+    if not isinstance(products, list) or not products:
+        failures.append("shop-products.json lacks the required non-empty products list")
+        products = []
+    for product in products:
+        if set(product) != product_keys:
+            failures.append(f"product {product.get('handle')} fields differ: {sorted(set(product) ^ product_keys)}")
+        if product.get("currency") != "GBP" or not re.fullmatch(r"\d+\.\d{2}", str(product.get("price", ""))):
+            failures.append(f"product {product.get('handle')} has an invalid GBP price")
+        if re.search(r"<[^>]+>", product.get("shortDescription", "")):
+            failures.append(f"product {product.get('handle')} retains HTML")
+        if not product.get("url", "").startswith("https://toolsandjigs.com/products/"):
+            failures.append(f"product {product.get('handle')} has a non-Shopify canonical URL")
+        if not all(image.startswith("https://cdn.shopify.com/") for image in product.get("images", [])):
+            failures.append(f"product {product.get('handle')} has a non-Shopify image")
+
+    redirects = json.loads((ROOT / "content/redirects.json").read_text(encoding="utf-8"))
+    retired = {"/videos/", "/projects/", "/services/", "/robin-recommends/", "/about/", "/register-interest/"}
+    if not retired.issubset(redirects):
+        failures.append(f"retired public routes lack redirects: {sorted(retired - set(redirects))}")
 
     result = {
         "ok": not failures,
@@ -69,6 +88,7 @@ def main() -> int:
         "downloadedAssetCount": sum(asset["localPath"] is not None for asset in assets["assets"]),
         "downloadedBytes": assets["downloadedBytes"],
         "videoCount": len(videos["videos"]),
+        "shopProductCount": len(products),
         "failures": failures,
     }
     EVIDENCE.mkdir(parents=True, exist_ok=True)

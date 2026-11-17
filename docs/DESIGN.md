@@ -1,6 +1,17 @@
 # Robweb design direction
 
-Status: design system and risk spikes, not a production-site implementation. This direction follows `CLAUDE.md`: immutable RC logo artwork, Robin-owned imagery only, Irish English, metric first, no unapproved claims/prices/reviews, no tracking before consent and `noindex` until launch approval.
+Status: design system plus historical exploration. The current public implementation follows the simplified 17 November 2026 direction below and supersedes the broader information architecture later in this document. It continues to follow `CLAUDE.md`: immutable RC logo artwork, Robin-owned imagery only, Irish English, metric first, no unapproved claims/prices/reviews, no tracking before consent and `noindex` until launch approval.
+
+## Current Products + App direction
+
+- Header and phone menu expose only Home, Shop, App and Contact, plus the prominent external Tools & Jigs action.
+- Home moves directly from Robin's premium dark hero into featured products, RC Calculators, the official shop and Contact. There are no stats, work gallery, services, video or recommendations bands.
+- Shop is the product catalogue. It shows the live/snapshot Shopify fields without rewriting prices, availability or product claims; buying and product canonical URLs remain on Tools & Jigs.
+- App uses real V3 light/dark product screens, metric-first copy, the approved subscription prices and honest unavailable store-link placeholders.
+- Legal and stable calculator-app URLs remain first-class utility routes. Retired public sections are not linked and permanently redirect.
+- Every remaining page is reviewed at phone/desktop in light/dark. The task-specific plan and proof are in `docs/design-proof/products-app/`.
+
+The audience, flows, navigation and wireframes below document the earlier full-site exploration. They remain useful design rationale but are not the active public information architecture.
 
 ## 1. The idea: **Measured craft**
 

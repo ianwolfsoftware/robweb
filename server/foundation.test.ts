@@ -5,6 +5,7 @@ import { describe, expect, it } from 'vitest';
 import { createApp, hashToken } from './app.js';
 import { loadConfig } from './config.js';
 import { InMemoryRepository } from './repository.js';
+import { ShopifyCatalogue } from './shopify.js';
 import { publicFormSchema } from './validation.js';
 
 const config = loadConfig({
@@ -29,14 +30,34 @@ describe('analytics aggregation and outbound redirect', () => {
     await repository.recordVisit({ day: '2026-11-17', path: '/videos/', referrerHost: 'direct', deviceClass: 'phone' });
     await repository.recordVisit({ day: '2026-11-17', path: '/videos/', referrerHost: 'direct', deviceClass: 'phone' });
     const app = createApp({ repository, config, notifications });
-    const redirect = await request(app).get('/go/shop?source=%2Fvideos%2F&target=https%3A%2F%2Fevil.invalid%2Fcollect').expect(302);
-    expect(redirect.headers.location).toMatch(/^https:\/\/toolsandjigs\.com\//);
+    const redirect = await request(app).get('/go/shop?product=robangle&source=%2Fshop%2Fproduct%2F&target=https%3A%2F%2Fevil.invalid%2Fcollect').expect(302);
+    expect(redirect.headers.location).toMatch(/^https:\/\/toolsandjigs\.com\/products\/robangle/);
     expect(redirect.headers.location).toContain('utm_source=robweb');
     const snapshot = await repository.dashboard();
     expect(snapshot.visits).toBe(2);
     expect(snapshot.topPages).toEqual([{ label: '/videos/', count: 2 }]);
-    expect(snapshot.outbound).toEqual([{ label: '/videos/', count: 1 }]);
+    expect(snapshot.outbound).toEqual([{ label: '/shop/product/', count: 1 }]);
     expect([...repository.visits.values()][0]).not.toHaveProperty('ip');
+  });
+});
+
+describe('Shopify catalogue', () => {
+  it('sanitises the public feed and holds the result in the 15-minute in-memory cache', async () => {
+    let requests = 0;
+    const fetcher = (async () => {
+      requests += 1;
+      return new Response(JSON.stringify({ products: [{
+        title: 'Test Jig', handle: 'test-jig', body_html: '<p>Useful &amp; exact.</p><script>bad()</script>',
+        variants: [{ price: '24.99', available: true }], images: [{ src: 'https://cdn.shopify.com/test.jpg' }],
+      }] }), { status: 200, headers: { 'content-type': 'application/json' } });
+    }) as typeof fetch;
+    const catalogue = new ShopifyCatalogue('', fetcher);
+    const first = await catalogue.get();
+    const second = await catalogue.get();
+    expect(requests).toBe(1);
+    expect(second).toBe(first);
+    expect(first.source).toBe('shopify-public-feed');
+    expect(first.products[0]).toMatchObject({ title: 'Test Jig', price: '24.99', currency: 'GBP', shortDescription: 'Useful & exact.', available: true });
   });
 });
 

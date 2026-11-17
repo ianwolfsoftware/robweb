@@ -1,18 +1,186 @@
 {
+  "fetchedAt": "2026-11-17T16:32:21.430Z",
   "sourceUrl": "https://toolsandjigs.com/products.json?limit=250",
-  "fetchedAt": "2026-11-17T13:39:34Z",
-  "store": {
-    "publicDomain": "https://toolsandjigs.com",
-    "shopifyDomain": "https://cf7084-4.myshopify.com",
-    "domainEvidence": "The public storefront root returned HTTP 200. Public DNS for cf7084-4.myshopify.com resolves to shops.myshopify.com."
-  },
-  "status": "blocked",
-  "httpStatus": 429,
-  "retryAfterSeconds": 60,
-  "detail": "The public products endpoint rate-limited the single inventory request. It was not retried or bypassed.",
-  "fallbackOptions": [
-    "Robin can provide a Shopify Storefront API token with read-only product and collection access.",
-    "Robin can provide an approved manual product/collection feed (CSV or Shopify export) for a one-off inventory."
-  ],
-  "products": []
+  "products": [
+    {
+      "title": "Revivablade® XS PRO Professional Multi-Tool Blade Sharpener.",
+      "handle": "revivablade®-xs-pro-professional-multi-tool-blade-sharpener",
+      "price": "75.00",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XS_Pro.webp?v=1788972136",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XS_Pro_with_storage_container.webp?v=1788972136",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Resharpend_Blade_on_the_XS_Pro.jpg?v=1788972136",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/How_to_use_Revivablade_Original_XS_XL_and_XS_Pro.webp?v=1788972136",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XS_Pro_Resharpened_blade_example.webp?v=1788972137",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XS_and_XS_Pro_Comparison.png?v=1788972136"
+      ],
+      "shortDescription": "Revivablade® XS PRO – Professional Multi-Tool Blade Sharpener The Revivablade XS PRO is built for serious tradesmen who demand precision and durability. Engineered with an advanced CBN…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/revivablade%C2%AE-xs-pro-professional-multi-tool-blade-sharpener"
+    },
+    {
+      "title": "Revivablade® XS Compact Multi-Tool Blade Sharpener with Hex Arbor!",
+      "handle": "revivablade®-xs-compact-multi-tool-blade-sharpener-with-hex-arbor",
+      "price": "35.99",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XS_Revivablade.webp?v=1788972258",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/How_to_use_Revivablade_Original_XS_XL_and_XS_Pro_8777bcaa-8613-45d5-82da-cb1e9e3e3cdf.webp?v=1788972257",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XS_In_action_with_sparks.webp?v=1788972258",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XS_with_box.webp?v=1788972258",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XS_Revivablade_with_container.webp?v=1788972259",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XS_Container.webp?v=1788972258"
+      ],
+      "shortDescription": "REVIVABLADE® XS: Compact Multitool Blade Sharpener with Hex Arbor! for cordless drills and IMPACT DRIVERS REVIVABLADE® XS is the compact solution for resharpening worn oscillating multi-tool…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/revivablade%C2%AE-xs-compact-multi-tool-blade-sharpener-with-hex-arbor"
+    },
+    {
+      "title": "Revivablade® Original Multi-Tool Blade Sharpener With Hex Arbor",
+      "handle": "revivablade®-original-multi-tool-blade-sharpener-with-hex-arbor",
+      "price": "37.99",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_Original_with_storage_case.webp?v=1788972317",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/How_to_use_Revivablade_Original_XS_XL_and_XS_Pro_5c207006-0fce-4a3e-8ad5-653b9695f14d.webp?v=1788972315",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/RB_original_HEX_BOX_219df528-8fd5-45c1-bc72-7e157d2dba5e.webp?v=1788972315",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Sharpening_multitool_blade.webp?v=1788972315",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Multitool_balde_Multitool.webp?v=1788972315",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_original_drill_impact.webp?v=1788972315"
+      ],
+      "shortDescription": "REVIVABLADE® Original Multi-Tool Blade Sharpener With HEX ARBOR for use on cordless drills and i mpact drivers REVIVABLADE® Original — the first Revivablade designed for tradespeople —…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/revivablade%C2%AE-original-multi-tool-blade-sharpener-with-hex-arbor"
+    },
+    {
+      "title": "Revivablade® XL Wide Multi-Tool Blade Sharpener With Hex Arbor",
+      "handle": "revivablade®-xl-wide-multi-tool-blade-sharpener-with-hex-arbor",
+      "price": "44.99",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XL_with_hex_case.jpg?v=1788972381",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/XL_with_hex_box.webp?v=1788972381",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XL_Resharpen.webp?v=1788972381",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XL_Drill.webp?v=1788972381",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XL_Impact.webp?v=1788972380",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_XL_hex_arbor.webp?v=1788972381"
+      ],
+      "shortDescription": "REVIVABLADE® XL – Professional Multi-Tool Blade Sharpener Give your dull oscillating multi-tool blades a second life with the REVIVABLADE® XL . Designed for blades 34mm - 68 mm wide , this…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/revivablade%C2%AE-xl-wide-multi-tool-blade-sharpener-with-hex-arbor"
+    },
+    {
+      "title": "Revivablade® Pro Professional Multi-Tool Blade Sharpener",
+      "handle": "revivablade®-pro-professional-multi-tool-blade-sharpener",
+      "price": "114.99",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_PRO_2026_web.webp?v=1788972739",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/RevivabladePro.webp?v=1788972739",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade.webp?v=1788972740",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Multitool_Blade_Sharpener.webp?v=1788972739",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Curved_Multitool_Blade.webp?v=1788972739",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Titianium_Multitool_Blade.webp?v=1788972739"
+      ],
+      "shortDescription": "Revivablade® Pro – Cordless Drill Powered Professional Multi-Tool Blade Sharpener The Revivablade Pro is built for serious tradesmen who demand precision and durability. Engineered with an…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/revivablade%C2%AE-pro-professional-multi-tool-blade-sharpener"
+    },
+    {
+      "title": "NEW.. Pocket Pro Multi-Tool Blade Sharpener",
+      "handle": "new-pocket-pro-multi-tool-blade-sharpener",
+      "price": "54.99",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Revivablade_pocket_pro_multitool_blade_sharpener.webp?v=1788972857",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Pocket_Pro_Blade.webp?v=1788972856",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Pocket_Pro_for_34mm_wide_Multitool_blades.png?v=1788972867",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Pocket_Pro_how_to_use.webp?v=1788972857",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Pocket_Pro_on_bit_Holder.webp?v=1788972857",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Pocket_Pro_Tub.webp?v=1788972856"
+      ],
+      "shortDescription": "Revivablade® Pocket Pro – Compact Multi-Tool Blade Sharpener The Revivablade® Pocket Pro brings professional multi-tool blade sharpening into our most compact Pro design yet. Engineered with…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/new-pocket-pro-multi-tool-blade-sharpener"
+    },
+    {
+      "title": "Architrave Tool",
+      "handle": "architrave-tool",
+      "price": "7.99",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Architrave_Tool_Front.jpg?v=1730459943",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Architrave_Tool_Back.jpg?v=1730459943",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Architrave_Tool_both_sides.jpg?v=1730459945",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Architrave_Tool_door_lining.jpg?v=1730459943",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Architrave_Tool_ogee_architrave.jpg?v=1730459943",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Architrave-size.jpg?v=1730459943"
+      ],
+      "shortDescription": "Architrave pocket jig for setting the correct architrave offset for 3 & 4 inch bearing door hinges The Architrave pocket jig has been designed for quick markup of door linings to suit 3 & 4…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/architrave-tool"
+    },
+    {
+      "title": "Robangle",
+      "handle": "robangle",
+      "price": "39.95",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Robangle_1.jpg?v=1747040978",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Robangle_3.jpg?v=1747040978",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Robangle_4.jpg?v=1747040977",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Robangle_5.jpg?v=1747040977",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/Robangle_6.jpg?v=1747040977"
+      ],
+      "shortDescription": "The Robangle is for setting a perfect angle guide for multiple repeat cuts. Robangle has been designed for a quick markup or cut guide when processing multiple cuts with the same angle. It…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/robangle"
+    },
+    {
+      "title": "1/4\" TCT Template Profile Router Cutter",
+      "handle": "tct-router-cutter",
+      "price": "24.00",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/router-cutter-1.jpg?v=1711471913",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/router-cutter-2.jpg?v=1711471913",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/router-cutter-3.jpg?v=1711471914",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/router-cutter-4.jpg?v=1711471912"
+      ],
+      "shortDescription": "TC Tipped Router Bit. Bearing Guided Template Profile Router Cutter. Accurate 6mm Cutting Depth. 12.7mm Cut Diameter. Durable - Carbide Tips. PTFE Coating to minimise heat Shank mounted…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/tct-router-cutter"
+    },
+    {
+      "title": "4 Inch / 102mm Hinge Jig",
+      "handle": "4-inch-101-6mm-hinge-jig",
+      "price": "29.50",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/4in-jig-1.jpg?v=1711471956",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/4in-jig-2.jpg?v=1711471956",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/4in-jig-3.jpg?v=1711471957",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/4in-jig-4.jpg?v=1711471956"
+      ],
+      "shortDescription": "102mm hinge jig designed to increase efficiency and precision in your daily carpentry. Designed for the most commonly used hinges here in the UK This high-quality CNC machined jig is perfect…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/4-inch-101-6mm-hinge-jig"
+    },
+    {
+      "title": "3 Inch / 76mm Hinge Jig",
+      "handle": "3-inch-76-2mm-hinge-jig",
+      "price": "29.50",
+      "currency": "GBP",
+      "images": [
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/3in-jig-1.jpg?v=1711471938",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/3in-jig-2.jpg?v=1711471937",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/3in-jig-3.jpg?v=1711471937",
+        "https://cdn.shopify.com/s/files/1/0808/5173/0757/files/3in-jig-4.jpg?v=1711471937"
+      ],
+      "shortDescription": "76mm hinge jig designed to increase efficiency and precision in your daily carpentry. Designed for the most commonly used hinges here in the UK This high-quality CNC machined jig is perfect…",
+      "available": true,
+      "url": "https://toolsandjigs.com/products/3-inch-76-2mm-hinge-jig"
+    }
+  ]
 }

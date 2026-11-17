@@ -1,3 +1,5 @@
+import redirects from '../content/redirects.json';
+
 export type Route = {
   path: string;
   title: string;
@@ -7,16 +9,10 @@ export type Route = {
 };
 
 export const routes: Route[] = [
-  { path: '/', title: 'Robin Clevett | Construction', description: 'Construction projects, practical videos, tools and RC Calculators.', navLabel: 'Home' },
-  { path: '/videos/', title: 'Videos | Robin Clevett', description: 'Recent practical videos from Robin Clevett.', navLabel: 'Videos' },
-  { path: '/projects/', title: 'Projects | Robin Clevett', description: 'Selected construction project imagery from Robin Clevett.', navLabel: 'Work' },
-  { path: '/services/', title: 'Construction services | Robin Clevett', description: 'A clear overview of Robin Clevett construction services.', navLabel: 'Services' },
+  { path: '/', title: 'Robin Clevett | Tools & RC Calculators', description: 'Shop Robin Clevett’s Tools & Jigs products and discover the RC Calculators app.', navLabel: 'Home' },
+  { path: '/shop/', title: 'Shop | Robin Clevett', description: 'Browse the live Tools & Jigs product range, then buy from the official Shopify store.', navLabel: 'Shop' },
   { path: '/app/', title: 'RC Calculators | Robin Clevett', description: 'Metric-first RC Calculators for practical construction work.', navLabel: 'App' },
-  { path: '/shop/', title: 'Shop | Robin Clevett', description: 'Browse Robin Clevett’s Tools and Jigs range and open the official store.', navLabel: 'Shop' },
-  { path: '/about/', title: 'About Robin Clevett', description: 'Robin Clevett: construction industry fanatic, sharing work and practical knowledge.' },
-  { path: '/robin-recommends/', title: 'Robin Recommends', description: 'Current, clearly labelled resources recommended by Robin Clevett.' },
   { path: '/contact/', title: 'Contact | Robin Clevett', description: 'How to get in touch with Robin Clevett.', navLabel: 'Contact' },
-  { path: '/register-interest/', title: 'Register your interest | Robin Clevett', description: 'Register an interest in Robin Clevett updates and services.' },
   { path: '/legal/privacy/', title: 'Privacy notice | Robin Clevett', description: 'How the Robin Clevett website handles personal information.' },
   { path: '/legal/terms/', title: 'Website terms | Robin Clevett', description: 'Terms for using the Robin Clevett website.' },
   { path: '/legal/disclaimer/', title: 'Disclaimer | Robin Clevett', description: 'Important limits for construction information on this website.' },
@@ -24,7 +20,6 @@ export const routes: Route[] = [
   { path: '/calculator-app/', title: 'RC Calculators | Robin Clevett', description: 'The preserved RC Calculators app landing page.', sitemap: false },
   { path: '/calculator-app/privacy/', title: 'RC Calculators privacy | Robin Clevett', description: 'Privacy information for RC Calculators.' },
   { path: '/calculator-app/terms/', title: 'RC Calculators terms | Robin Clevett', description: 'Terms of use for RC Calculators.' },
-  { path: '/tools-and-jigs/', title: 'Shop | Robin Clevett', description: 'The preserved Tools and Jigs route.', sitemap: false },
   { path: '/404/', title: 'Page not found | Robin Clevett', description: 'That page could not be found.', sitemap: false },
   { path: '/admin/', title: 'Robweb admin', description: 'Secure content administration.', sitemap: false },
   { path: '/admin/pages/', title: 'Pages | Robweb admin', description: 'Manage structured Robweb content.', sitemap: false },
@@ -36,6 +31,8 @@ export const routes: Route[] = [
   { path: '/admin/login/', title: 'Sign in | Robweb admin', description: 'Secure Robweb admin sign in.', sitemap: false },
   { path: '/admin/set-password/', title: 'Set password | Robweb admin', description: 'Complete a secure Robweb invitation.', sitemap: false },
 ];
+
+export const legacyRedirects: Record<string, string> = redirects;
 
 export const navRoutes = routes.filter((route) => route.navLabel);
 
@@ -73,4 +70,8 @@ export const projectImages = [
 
 export function shopUrl(sourcePath: string, target = 'https://toolsandjigs.com/') {
   return `/go/shop?source=${encodeURIComponent(sourcePath)}&target=${encodeURIComponent(target)}`;
+}
+
+export function productUrl(handle: string, sourcePath = '/shop/product/') {
+  return `/go/shop?product=${encodeURIComponent(handle)}&source=${encodeURIComponent(sourcePath)}`;
 }

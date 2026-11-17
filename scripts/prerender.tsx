@@ -1,7 +1,7 @@
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { renderToString } from 'react-dom/server';
-import { routes } from '../src/content';
+import { legacyRedirects, routes } from '../src/content';
 import { Site } from '../src/site';
 
 const dist = path.resolve('dist');
@@ -21,6 +21,14 @@ for (const route of routes) {
   await mkdir(path.dirname(filename), { recursive: true });
   await writeFile(filename, document);
   if (route.path === '/404/') await writeFile(path.join(dist, '404.html'), document);
+}
+
+for (const [from, to] of Object.entries(legacyRedirects)) {
+  const target = `${publicOrigin}${to}`;
+  const document = `<!doctype html><html lang="en"><head><meta charset="UTF-8"><meta name="robots" content="noindex, nofollow, noarchive"><meta http-equiv="refresh" content="0;url=${target}"><link rel="canonical" href="${target}"><title>Page moved | Robin Clevett</title></head><body><main><h1>This page has moved</h1><p><a href="${to}">Continue to the new page</a>.</p></main><script>location.replace(${JSON.stringify(to)})</script></body></html>`;
+  const filename = path.join(dist, from.slice(1), from.endsWith('/') ? 'index.html' : '');
+  await mkdir(path.dirname(filename), { recursive: true });
+  await writeFile(filename, document, 'utf8');
 }
 
 await writeFile(path.join(dist, 'robots.txt'), 'User-agent: *\nDisallow: /\n', 'utf8');

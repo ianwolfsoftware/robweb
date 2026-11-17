@@ -95,6 +95,10 @@ other profile data were collected.
 
 ## Tools and Jigs inventory
 
+### Current catalogue snapshot (17 November 2026)
+
+The simplified Products + App candidate refreshed `content/shop-products.json` directly from the public key-free Shopify feed. It contains 11 products and only title, handle, GBP price, Shopify CDN image URLs, HTML-stripped short description, availability and canonical Tools & Jigs URL. Runtime fetching uses a 15-minute cache, polite user agent and timeout; the snapshot remains available when Shopify is unavailable. The historical collection attempt below explains the earlier empty cache and is no longer the current catalogue state.
+
 The public `https://toolsandjigs.com/` storefront returned HTTP 200. The
 task-supplied Shopify hostname `cf7084-4.myshopify.com` publicly resolves via
 `shops.myshopify.com`, confirming the Shopify store association. The single

@@ -6,7 +6,8 @@ The live LXC still serves the existing holding page on port 6980 through `serve.
 
 ## What is included
 
-- Static-prerendered public routes for Home, App, Shop, Videos, About, Services, Projects, Robin Recommends, Contact, Register interest, four legal pages, stable calculator-app legal URLs and 404.
+- Static-prerendered public routes for Home, Shop, App, Contact, four legal pages, stable calculator-app legal URLs and 404. Retired Work, Videos, Services, Recommends, About and Register-interest URLs permanently redirect to a remaining route.
+- A live Tools & Jigs product catalogue fetched server-side from Shopify with a 15-minute in-memory cache, a six-second timeout, a polite user agent and a current committed snapshot fallback. Product images stay on Shopify's CDN and buying stays on Shopify through the aggregate `/go/shop?product=` click tracker.
 - Fixed content blocks only: Hero, Feature list, Proof, Shop CTA, App CTA, Video grid, FAQ, Contact CTA, Text and Image. Content cannot inject arbitrary HTML or script.
 - Admin routes for aggregate analytics, page revisions/publish/revert, media inventory, forms inbox/CSV export, users and settings.
 - Owner/editor invitations, one-time password setup, bcrypt password hashes, server-side sessions, secure same-site cookies, CSRF tokens and rate limits. There are no default credentials.
@@ -23,7 +24,7 @@ npm ci
 npm run dev
 ```
 
-`npm run dev` uses the in-memory repository and starts Vite on `127.0.0.1:6980` plus the API on `127.0.0.1:6981`. It stores no durable form/admin data. For database-backed API work, set private DB values and run `tsx watch server/index.ts` without the development script’s `REPOSITORY=memory` override.
+`npm run dev` uses the in-memory repository and starts Vite on `127.0.0.1:6980` plus the API on `127.0.0.1:6981`. It stores no durable form/admin data. For database-backed API work, set private DB values and run `tsx watch server/index.ts` without the development script’s `REPOSITORY=memory` override. Refresh the committed product snapshot with `node scripts/refresh-shop-products.mjs`; the public feed requires no API key.
 
 Quality gates:
 
@@ -39,7 +40,7 @@ The build writes prerendered HTML to `dist/` and compiled API code to `build-ser
 
 ## Configuration
 
-Copy `.env.example` and keep `.env` private. Production refuses `REPOSITORY=memory`; MariaDB credentials are mandatory. Store/app destinations stay absent until approved URLs are supplied. `GO_LIVE=false` and the generated/public metadata remain noindex until a separate approval changes them.
+Copy `.env.example` and keep `.env` private. Production refuses `REPOSITORY=memory`; MariaDB credentials are mandatory. App-store destinations stay visibly labelled as unavailable until approved URLs are supplied. `SHOPIFY_STOREFRONT_TOKEN` is an optional read-only fallback; the public feed remains the default and the site does not require the token. `GO_LIVE=false` and the generated/public metadata remain noindex until a separate approval changes them.
 
 Form retention defaults to 90 days and is owner-editable. Media rows accept JPEG, PNG, WebP or AVIF, up to 10 MB, with non-empty alt text. The current source-controlled inventory remains governed by `content/assets.json`.
 
@@ -68,7 +69,7 @@ The link is printed once, expires after 48 hours and becomes unusable after pass
 
 - Contact fields, email addresses and messages never enter analytics or UTMs.
 - `/go/shop` accepts only `https://toolsandjigs.com` targets and adds stable attribution parameters.
-- The shop cache is currently empty because the public Shopify feed rate-limited the single inventory request. The UI links to the authoritative store and invents no product, price or availability.
+- The committed shop snapshot contains only the current live feed's title, handle, GBP price, Shopify CDN images, stripped short description, availability and canonical Shopify URL. The runtime refreshes it in memory every 15 minutes and falls back without inventing product data.
 - Final legal identity/contact/processor wording and first-party cookieless measurement basis remain review items before go-live.
 - Do not edit DNS, edge/TLS, `robc.co.uk`, ROBC data/auth/services, or apply SQL as part of ordinary build verification.
 

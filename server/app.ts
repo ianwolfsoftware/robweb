@@ -1,6 +1,4 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { readFile } from 'node:fs/promises';
-import path from 'node:path';
 import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
 import express, { type NextFunction, type Request, type Response } from 'express';
@@ -11,11 +9,13 @@ import { sectionTypes, type FormStatus, type UserRecord } from '../shared/types.
 import type { AppConfig } from './config.js';
 import type { NotificationTransport } from './notifications.js';
 import type { Repository } from './repository.js';
+import { ShopifyCatalogue } from './shopify.js';
 import { formStatusSchema, inviteSchema, loginSchema, publicFormSchema, setPasswordSchema, utcDay, visitSchema } from './validation.js';
 
 const SESSION_COOKIE = 'robweb_session';
 const shopOrigin = 'https://toolsandjigs.com';
 const sourceSchema = z.string().startsWith('/').max(240).regex(/^\/[A-Za-z0-9/_-]*$/).default('/');
+const productSchema = z.string().max(181).regex(/^[\p{L}\p{N}][\p{L}\p{N}®_-]{0,180}$/u);
 const settingsSchema = z.object({ form_retention_days: z.coerce.number().int().min(1).max(730) }).strict();
 const sectionSchema = z.object({
   id: z.string().max(64), type: z.enum(sectionTypes), position: z.number().int().min(0).max(200),
@@ -38,6 +38,7 @@ function routeParam(value: string | string[]) { return Array.isArray(value) ? va
 
 export function createApp({ repository, config, notifications }: { repository: Repository; config: AppConfig; notifications: NotificationTransport }) {
   const app = express();
+  const shopify = new ShopifyCatalogue(config.SHOPIFY_STOREFRONT_TOKEN);
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
   app.use(helmet({
@@ -99,16 +100,18 @@ export function createApp({ repository, config, notifications }: { repository: R
   }));
 
   app.get('/api/shop', asyncRoute(async (_request, response) => {
-    const source = path.resolve(process.cwd(), 'content/shop-products.json');
-    const products = JSON.parse(await readFile(source, 'utf8')) as unknown;
-    response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
-    return response.json(products);
+    const catalogue = await shopify.get();
+    response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
+    return response.json(catalogue);
   }));
 
   app.get('/go/shop', asyncRoute(async (request, response) => {
     const sourcePath = sourceSchema.catch('/').parse(request.query.source);
     let target = new URL(shopOrigin);
-    if (typeof request.query.target === 'string') {
+    const product = productSchema.safeParse(request.query.product);
+    if (product.success) {
+      target = new URL(`/products/${encodeURIComponent(product.data)}`, shopOrigin);
+    } else if (typeof request.query.target === 'string') {
       try {
         const candidate = new URL(request.query.target, shopOrigin);
         if (candidate.origin === shopOrigin) target = candidate;
@@ -207,7 +210,7 @@ export function createApp({ repository, config, notifications }: { repository: R
     response.type('text/plain').send(config.goLive ? 'User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n' : 'User-agent: *\nDisallow: /\n');
   });
   app.get('/sitemap.xml', (_request, response) => {
-    const paths = ['/', '/app/', '/shop/', '/videos/', '/about/', '/services/', '/projects/', '/robin-recommends/', '/contact/', '/register-interest/', '/legal/privacy/', '/legal/terms/', '/legal/disclaimer/', '/legal/cookies/', '/calculator-app/privacy/', '/calculator-app/terms/'];
+    const paths = ['/', '/shop/', '/app/', '/contact/', '/legal/privacy/', '/legal/terms/', '/legal/disclaimer/', '/legal/cookies/', '/calculator-app/', '/calculator-app/privacy/', '/calculator-app/terms/'];
     response.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((value) => `<url><loc>${config.PUBLIC_ORIGIN}${value}</loc></url>`).join('')}</urlset>`);
   });
 

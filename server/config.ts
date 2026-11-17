@@ -22,6 +22,7 @@ const envSchema = z.object({
   SMTP_PASSWORD: z.string().default(''),
   FORM_NOTIFICATION_TO: z.string().default(''),
   GA_MEASUREMENT_ID: z.string().regex(/^G-[A-Z0-9]+$/).default('G-XQNLT1H91R'),
+  SHOPIFY_STOREFRONT_TOKEN: z.string().default(''),
 });
 
 export type AppConfig = ReturnType<typeof loadConfig>;

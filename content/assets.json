@@ -2003,6 +2003,38 @@
       "notes": "Fresh read-only browser capture of Robin's own RC Calculators V3 app on 17 November 2026; no account or customer data was used. WebP and AVIF derivatives are in assets/app."
     },
     {
+      "id": "robc-app-v3-home-light",
+      "localPath": "assets/app/v3-home-light.png",
+      "originalUrl": "wolf:/root/robc/docs/v3-screens/home-light-390x844.png",
+      "page": "https://robweb.wolf.uk.com/app/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/",
+        "https://robweb.wolf.uk.com/app/"
+      ],
+      "alt": "RC Calculators V3 home screen in light mode",
+      "width": 390,
+      "height": 844,
+      "bytes": 56612,
+      "rights": "robin-own-app",
+      "notes": "Copied unchanged from Robin's RC Calculators V3 browser proof; the capture contains synthetic project and measurement values only."
+    },
+    {
+      "id": "robc-app-v3-home-dark",
+      "localPath": "assets/app/v3-home-dark.png",
+      "originalUrl": "wolf:/root/robc/docs/v3-screens/home-dark-390x844.png",
+      "page": "https://robweb.wolf.uk.com/app/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/",
+        "https://robweb.wolf.uk.com/app/"
+      ],
+      "alt": "RC Calculators V3 home screen in dark mode",
+      "width": 390,
+      "height": 844,
+      "bytes": 54815,
+      "rights": "robin-own-app",
+      "notes": "Copied unchanged from Robin's RC Calculators V3 browser proof; the capture contains synthetic project and measurement values only."
+    },
+    {
       "id": "robweb-social-card",
       "localPath": "assets/brand/social-card.png",
       "originalUrl": "derived:robc-127+robc-128",

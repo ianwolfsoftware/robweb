@@ -4,24 +4,24 @@ import { mkdir, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import puppeteer from 'puppeteer-core';
 
-const port = 4173;
+const port = Number(process.env.ROBWEB_SHELL_PORT || 4173);
 const baseUrl = `http://127.0.0.1:${port}`;
 const evidenceDir = process.env.ROBWEB_EVIDENCE_DIR;
 const routes = [
-  ['home', '/'], ['app', '/app/'], ['shop', '/shop/'], ['videos', '/videos/'], ['about', '/about/'],
-  ['services', '/services/'], ['projects', '/projects/'], ['recommends', '/robin-recommends/'],
-  ['contact', '/contact/'], ['register-interest', '/register-interest/'], ['privacy', '/legal/privacy/'],
+  ['home', '/'], ['shop', '/shop/'], ['app', '/app/'], ['contact', '/contact/'], ['privacy', '/legal/privacy/'],
   ['terms', '/legal/terms/'], ['disclaimer', '/legal/disclaimer/'], ['cookies', '/legal/cookies/'],
   ['calculator-app', '/calculator-app/'], ['calculator-privacy', '/calculator-app/privacy/'],
   ['calculator-terms', '/calculator-app/terms/'], ['404', '/404/'],
 ];
+const redirects = ['/videos/', '/projects/', '/services/', '/robin-recommends/', '/about/', '/register-interest/', '/tools-and-jigs/'];
 const viewports = [
   ['mobile', { width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 }],
   ['desktop', { width: 1440, height: 900, isMobile: false, deviceScaleFactor: 1 }],
 ];
 const themes = ['dark', 'light'];
-const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
+const server = spawn(process.execPath, ['serve.mjs'], {
   stdio: ['ignore', 'pipe', 'pipe'],
+  env: { ...process.env, PORT: String(port), ROBWEB_SITE_ROOT: 'dist' },
 });
 
 async function waitForServer() {
@@ -61,7 +61,7 @@ try {
       page.on('pageerror', (error) => errors.push(`${viewportName}/${theme}/${currentRoute}: ${error.message}`));
       page.on('request', (request) => {
         const url = new URL(request.url());
-        if (url.origin !== baseUrl && url.protocol !== 'data:') externalRequests.add(url.origin);
+        if (url.origin !== baseUrl && url.protocol !== 'data:' && url.origin !== 'https://cdn.shopify.com') externalRequests.add(url.origin);
       });
 
       for (const [slug, route] of routes) {
@@ -84,6 +84,11 @@ try {
           touchIcon: document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'),
           socialImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content'),
           webglState: document.querySelector('.webgl-slot')?.getAttribute('data-state') || null,
+          emptyBands: [...document.querySelectorAll('main section')].filter((section) => {
+            const box = section.getBoundingClientRect();
+            const meaningful = section.textContent?.trim() || section.querySelector('img, canvas, form');
+            return box.height > 120 && !meaningful;
+          }).length,
         }));
         assert.equal(summary.noindex, 'noindex, nofollow, noarchive', `${route} has noindex metadata`);
         assert.equal(summary.h1Count, 1, `${route} has exactly one h1`);
@@ -95,9 +100,22 @@ try {
         assert.ok(summary.favicon, `${route} exposes a favicon`);
         assert.equal(summary.touchIcon, '/brand/apple-touch-icon.png', `${route} exposes the touch icon`);
         assert.match(summary.socialImage || '', /social-card\.png$/, `${route} exposes the logo social image`);
+        assert.equal(summary.emptyBands, 0, `${route} has no empty visual bands`);
         if (route === '/') assert.ok(['ready', 'fallback', 'static'].includes(summary.webglState), 'home exposes a rendered WebGL layer or static fallback');
+        if (route === '/shop/') {
+          assert.equal(await page.$$eval('.product-card', (cards) => cards.length), 11, 'shop renders all 11 committed Shopify products');
+          assert.equal(await page.$$eval('.product-card a[href^="/go/shop?product="]', (links) => links.length >= 11), true, 'every shop product buys through the click tracker');
+          assert.equal(await page.$$eval('.product-card img', (images) => images.every((image) => image.getAttribute('loading') === 'lazy')), true, 'Shopify catalogue images are lazy-loaded in the shipped UI');
+        }
+        if (route === '/app/') {
+          const appCopy = await page.$eval('main', (element) => element.textContent || '');
+          assert.match(appCopy, /£24\.99/, 'app shows the approved monthly price');
+          assert.match(appCopy, /£254\.99/, 'app shows the approved yearly price');
+          assert.equal(await page.$$eval('.app-screens img', (images) => images.length), 2, 'app shows light and dark V3 design screens');
+        }
         await page.evaluate(async () => {
-          const pause = () => new Promise((resolve) => setTimeout(resolve, 28));
+          document.querySelectorAll('img[loading="lazy"]').forEach((image) => { image.loading = 'eager'; });
+          const pause = () => new Promise((resolve) => setTimeout(resolve, 120));
           const step = Math.max(420, Math.floor(innerHeight * .7));
           for (let top = 0; top < document.documentElement.scrollHeight; top += step) {
             scrollTo(0, top);
@@ -106,7 +124,8 @@ try {
           scrollTo(0, 0);
           await pause();
         });
-        await new Promise((resolve) => setTimeout(resolve, 650));
+        await page.waitForFunction(() => [...document.querySelectorAll('.product-card img, .app-screens img')].every((image) => image.complete && image.naturalWidth > 0), { timeout: 15000 });
+        await new Promise((resolve) => setTimeout(resolve, 350));
         const screenshot = evidenceDir ? `${evidenceDir}/${theme}-${viewportName}-${slug}.png` : null;
         if (screenshot) await page.screenshot({ path: screenshot, fullPage: true });
         results.push({ route, slug, viewport: viewportName, theme, status: response?.status(), screenshot, ...summary });
@@ -115,13 +134,14 @@ try {
       await page.goto(baseUrl, { waitUntil: 'networkidle0' });
       await page.keyboard.press('Tab');
       assert.equal(await page.evaluate(() => document.activeElement?.className), 'skip-link', 'first keyboard target is skip link');
+      assert.equal(await page.$eval('.skip-link', (element) => getComputedStyle(element).opacity), '1', 'focused skip link becomes visible');
       if (viewportName === 'mobile') {
         const box = await page.$eval('.menu-toggle', (element) => { const rect = element.getBoundingClientRect(); return { width: rect.width, height: rect.height }; });
         assert.ok(box.width >= 44 && box.height >= 44, 'phone menu trigger is at least 44px');
         await page.click('.menu-toggle');
         await page.waitForSelector('.mobile-menu-panel');
         const links = await page.$$eval('.mobile-menu-panel nav a', (elements) => elements.map((element) => { const rect = element.getBoundingClientRect(); return { height: rect.height, text: element.textContent?.trim() }; }));
-        assert.equal(links.length, 10, 'full phone menu exposes all public routes');
+        assert.equal(links.length, 4, 'phone menu exposes only Home, Shop, App and Contact');
         assert.ok(links.every((link) => link.height >= 44), 'all phone menu routes have large tap targets');
         await page.keyboard.press('Escape');
         await page.waitForFunction(() => !document.querySelector('.mobile-menu-panel'));
@@ -135,6 +155,17 @@ try {
       await page.close();
     }
   }
+
+  for (const route of redirects) {
+    const response = await fetch(`${baseUrl}${route}`, { redirect: 'manual' });
+    assert.equal(response.status, 301, `${route} is a permanent redirect`);
+    assert.ok(['/', '/shop/'].includes(response.headers.get('location')), `${route} redirects to Home or Shop`);
+  }
+  const missing = await fetch(`${baseUrl}/definitely-missing/`, { redirect: 'manual' });
+  assert.equal(missing.status, 404, 'unknown paths return the real 404 status');
+  const sitemap = await (await fetch(`${baseUrl}/sitemap.xml`)).text();
+  assert.doesNotMatch(sitemap, /videos|projects|services|robin-recommends/, 'sitemap excludes retired routes');
+  assert.match(sitemap, /<loc>https:\/\/robweb\.wolf\.uk\.com\/shop\/<\/loc>/, 'sitemap includes Shop');
 
   const reduced = await browser.newPage();
   await reduced.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
@@ -173,7 +204,7 @@ try {
   await browser.close();
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
   assert.deepEqual([...externalRequests], [], `unexpected external requests: ${[...externalRequests].join(', ')}`);
-  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, results, reducedMotion: reducedState, performance, externalRequests: [] };
+  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, permanentRedirects: redirects.length, results, reducedMotion: reducedState, performance, externalRequests: [] };
   if (evidenceDir) await writeFile(`${evidenceDir}/browser-evidence.json`, `${JSON.stringify(evidence, null, 2)}\n`);
   console.log(JSON.stringify({ ok: true, screenshots: results.length, routes: routes.length, reducedMotion: reducedState, performance, externalRequests: [] }));
 } finally {
