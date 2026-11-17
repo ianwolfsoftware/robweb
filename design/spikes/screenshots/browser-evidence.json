@@ -1,0 +1,231 @@
+{
+  "generatedAt": "2026-11-17T14:31:37.439Z",
+  "chrome": "/usr/bin/google-chrome (isolated Playwright-launched headless profile)",
+  "note": "Headless SwiftShader frame intervals are regression evidence, not a physical mid-phone GPU benchmark.",
+  "results": [
+    {
+      "name": "blueprint-truss",
+      "viewport": "mobile",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/blueprint-truss-mobile.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Blueprint truss · Robweb design spike",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "blueprint-truss",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 16.67,
+        "p95FrameMs": 16.8,
+        "longFrames": 0,
+        "drawCalls": 2,
+        "triangles": 2,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "timber-shavings",
+      "viewport": "mobile",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/timber-shavings-mobile.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Timber and shavings · Robweb design spike",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "timber-shavings",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 16.67,
+        "p95FrameMs": 16.7,
+        "longFrames": 0,
+        "drawCalls": 2,
+        "triangles": 2,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "exploded-joint",
+      "viewport": "mobile",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/exploded-joint-mobile.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Exploded joint · Robweb design spike",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "exploded-joint",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 17.14,
+        "p95FrameMs": 16.7,
+        "longFrames": 1,
+        "drawCalls": 14,
+        "triangles": 84,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "prototype",
+      "viewport": "mobile",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/prototype-mobile.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Robin Clevett · Home design prototype",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "blueprint-truss",
+        "mode": "webgl",
+        "samples": 135,
+        "averageFrameMs": 18.64,
+        "p95FrameMs": 16.8,
+        "longFrames": 4,
+        "drawCalls": 2,
+        "triangles": 2,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "blueprint-truss",
+      "viewport": "desktop",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/blueprint-truss-desktop.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Blueprint truss · Robweb design spike",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "blueprint-truss",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 16.8,
+        "p95FrameMs": 16.7,
+        "longFrames": 1,
+        "drawCalls": 2,
+        "triangles": 2,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "timber-shavings",
+      "viewport": "desktop",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/timber-shavings-desktop.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Timber and shavings · Robweb design spike",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "timber-shavings",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 16.98,
+        "p95FrameMs": 16.8,
+        "longFrames": 2,
+        "drawCalls": 2,
+        "triangles": 2,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "exploded-joint",
+      "viewport": "desktop",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/exploded-joint-desktop.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Exploded joint · Robweb design spike",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "exploded-joint",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 17.14,
+        "p95FrameMs": 16.8,
+        "longFrames": 1,
+        "drawCalls": 14,
+        "triangles": 84,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "prototype",
+      "viewport": "desktop",
+      "status": 200,
+      "screenshot": "design/spikes/screenshots/prototype-desktop.png",
+      "pageErrors": [],
+      "externalRequests": [],
+      "title": "Robin Clevett · Home design prototype",
+      "webglState": "ready",
+      "webglReason": null,
+      "performance": {
+        "scene": "blueprint-truss",
+        "mode": "webgl",
+        "samples": 105,
+        "averageFrameMs": 16.67,
+        "p95FrameMs": 16.7,
+        "longFrames": 0,
+        "drawCalls": 2,
+        "triangles": 2,
+        "pixelRatio": 1
+      },
+      "horizontalOverflow": false,
+      "h1Count": 1,
+      "noindex": "noindex, nofollow, noarchive"
+    },
+    {
+      "name": "blueprint-truss",
+      "viewport": "mobile-reduced-motion",
+      "webglState": "fallback",
+      "webglReason": "reduced-motion"
+    },
+    {
+      "name": "timber-shavings",
+      "viewport": "mobile-reduced-motion",
+      "webglState": "fallback",
+      "webglReason": "reduced-motion"
+    },
+    {
+      "name": "exploded-joint",
+      "viewport": "mobile-reduced-motion",
+      "webglState": "fallback",
+      "webglReason": "reduced-motion"
+    },
+    {
+      "name": "prototype",
+      "viewport": "mobile-reduced-motion",
+      "webglState": "fallback",
+      "webglReason": "reduced-motion"
+    }
+  ]
+}
