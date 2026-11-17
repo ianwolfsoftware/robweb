@@ -2,7 +2,7 @@
   "source": "https://robc.co.uk",
   "fetchedAt": "2026-11-17T13:42:53Z",
   "downloadCapBytes": 157286400,
-  "downloadedBytes": 28339548,
+  "downloadedBytes": 33798337,
   "assets": [
     {
       "id": "robc-001",
@@ -2048,6 +2048,112 @@
       "bytes": 447018,
       "rights": "derived-robin-assets",
       "notes": "Locally composed only from inventoried Robin-owned photograph robc-127 and immutable logo robc-128; no stock or generated imagery."
+    },
+    {
+      "id": "robweb-hero-candidate-01",
+      "localPath": "assets/source/hero-candidates/candidate-01-sttx-42.75.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=STTXiILmYlQ&t=42.75s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Robin Clevett smiling at the camera",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 311889,
+      "rights": "robin-own-youtube",
+      "notes": "Frame from Robin's official YouTube channel. Selected hero source; responsive crops and AVIF/WebP derivatives are committed alongside it."
+    },
+    {
+      "id": "robweb-hero-candidate-02",
+      "localPath": "assets/source/hero-candidates/candidate-02-sttx-43.00.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=STTXiILmYlQ&t=43s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett at Japan House",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 326658,
+      "rights": "robin-own-youtube",
+      "notes": "Alternative frame from Robin's official YouTube channel."
+    },
+    {
+      "id": "robweb-hero-candidate-03",
+      "localPath": "assets/source/hero-candidates/candidate-03-8tg-3.00.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=8tgwdOojVfA&t=3s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett in a tool showroom",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 644972,
+      "rights": "robin-own-youtube",
+      "notes": "Alternative frame from Robin's official YouTube channel."
+    },
+    {
+      "id": "robweb-hero-candidate-04",
+      "localPath": "assets/source/hero-candidates/candidate-04-8tg-7.25.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=8tgwdOojVfA&t=7.25s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett in a tool showroom",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 680898,
+      "rights": "robin-own-youtube",
+      "notes": "Alternative frame from Robin's official YouTube channel."
+    },
+    {
+      "id": "robweb-hero-candidate-05",
+      "localPath": "assets/source/hero-candidates/candidate-05-cqos-7.75.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=CqosfYjmCec&t=7.75s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett seated at a modern building site",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 623116,
+      "rights": "robin-own-youtube",
+      "notes": "Second-ranked source frame from Robin's official YouTube channel; responsive desktop and mobile crops are committed."
+    },
+    {
+      "id": "robweb-hero-candidate-06",
+      "localPath": "assets/source/hero-candidates/candidate-06-63-2.00.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=63YHkFz5a0k&t=2s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett outdoors with tools and a work van",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 1343961,
+      "rights": "robin-own-youtube",
+      "notes": "Third-ranked source frame from Robin's official YouTube channel; responsive desktop and mobile crops are committed."
+    },
+    {
+      "id": "robweb-hero-candidate-07",
+      "localPath": "assets/source/hero-candidates/candidate-07-ujk-8.00.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=Ujk6Z_ydtJs&t=8s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett beside a plywood workbench",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 675553,
+      "rights": "robin-own-youtube",
+      "notes": "Alternative frame from Robin's official YouTube channel."
+    },
+    {
+      "id": "robweb-hero-candidate-08",
+      "localPath": "assets/source/hero-candidates/candidate-08-uu-6.00.jpg",
+      "originalUrl": "https://www.youtube.com/watch?v=_U-U981ETyM&t=6s",
+      "page": "https://www.youtube.com/@robinclevettcarpenter",
+      "usedOn": [],
+      "alt": "Robin Clevett seated outdoors with plans and a laptop",
+      "width": 3840,
+      "height": 2160,
+      "bytes": 851742,
+      "rights": "robin-own-youtube",
+      "notes": "Alternative frame from Robin's official YouTube channel."
     }
   ]
 }

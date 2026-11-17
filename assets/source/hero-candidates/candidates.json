@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-11-17",
+  "channel": "https://www.youtube.com/@robinclevettcarpenter",
+  "selection": {
+    "hero": "candidate-01-sttx-42.75.jpg",
+    "topThree": [
+      "candidate-01-sttx-42.75.jpg",
+      "candidate-05-cqos-7.75.jpg",
+      "candidate-06-63-2.00.jpg"
+    ],
+    "reason": "The selected frame gives the clearest large, natural smile and direct eye contact, with enough surrounding space for responsive crops. The other top frames preserve site and workshop context as alternatives."
+  },
+  "sharpnessMethod": "Variance of ImageMagick's grayscale Laplacian:0 convolution, reported on its normalised channel scale multiplied by 1000000; useful for relative ranking within this set.",
+  "candidates": [
+    {
+      "file": "candidate-01-sttx-42.75.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=STTXiILmYlQ",
+      "sourceVideoTitle": "Japanese Carpentry and Joinery in London 2025. My visit to Japan House Kensington",
+      "timestampSeconds": 42.75,
+      "resolution": "3840x2160",
+      "sharpnessScore": 2.88943,
+      "selectedRank": 1,
+      "crops": [
+        "top-1/desktop-16x9.jpg",
+        "top-1/desktop-21x9.jpg",
+        "top-1/mobile-4x5.jpg"
+      ]
+    },
+    {
+      "file": "candidate-02-sttx-43.00.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=STTXiILmYlQ",
+      "sourceVideoTitle": "Japanese Carpentry and Joinery in London 2025. My visit to Japan House Kensington",
+      "timestampSeconds": 43.0,
+      "resolution": "3840x2160",
+      "sharpnessScore": 6.30111,
+      "selectedRank": null,
+      "crops": []
+    },
+    {
+      "file": "candidate-03-8tg-3.00.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=8tgwdOojVfA",
+      "sourceVideoTitle": "Hilti tools and technology for 2026",
+      "timestampSeconds": 3.0,
+      "resolution": "3840x2160",
+      "sharpnessScore": 19.9824,
+      "selectedRank": null,
+      "crops": []
+    },
+    {
+      "file": "candidate-04-8tg-7.25.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=8tgwdOojVfA",
+      "sourceVideoTitle": "Hilti tools and technology for 2026",
+      "timestampSeconds": 7.25,
+      "resolution": "3840x2160",
+      "sharpnessScore": 22.4243,
+      "selectedRank": null,
+      "crops": []
+    },
+    {
+      "file": "candidate-05-cqos-7.75.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=CqosfYjmCec",
+      "sourceVideoTitle": "Thermal Glass for all buildings that out performs triple glazing!!!!!!",
+      "timestampSeconds": 7.75,
+      "resolution": "3840x2160",
+      "sharpnessScore": 20.1161,
+      "selectedRank": 2,
+      "crops": [
+        "top-2/desktop-16x9.jpg",
+        "top-2/desktop-21x9.jpg",
+        "top-2/mobile-4x5.jpg"
+      ]
+    },
+    {
+      "file": "candidate-06-63-2.00.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=63YHkFz5a0k",
+      "sourceVideoTitle": "My life has got easier!!!! Meet the MudMixer!!!",
+      "timestampSeconds": 2.0,
+      "resolution": "3840x2160",
+      "sharpnessScore": 73.0482,
+      "selectedRank": 3,
+      "crops": [
+        "top-3/desktop-16x9.jpg",
+        "top-3/desktop-21x9.jpg",
+        "top-3/mobile-4x5.jpg"
+      ]
+    },
+    {
+      "file": "candidate-07-ujk-8.00.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=Ujk6Z_ydtJs",
+      "sourceVideoTitle": "Plywood tips. How to make the easiest saw guide from nothing more than a circular saw and plywood",
+      "timestampSeconds": 8.0,
+      "resolution": "3840x2160",
+      "sharpnessScore": 13.9689,
+      "selectedRank": null,
+      "crops": []
+    },
+    {
+      "file": "candidate-08-uu-6.00.jpg",
+      "sourceVideoUrl": "https://www.youtube.com/watch?v=_U-U981ETyM",
+      "sourceVideoTitle": "Are building costs too high? I compare material prices from 2014 and 2025!!!!",
+      "timestampSeconds": 6.0,
+      "resolution": "3840x2160",
+      "sharpnessScore": 45.2481,
+      "selectedRank": null,
+      "crops": []
+    }
+  ]
+}

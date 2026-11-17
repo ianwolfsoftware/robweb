@@ -71,7 +71,6 @@ try {
         assert.equal(response?.status(), 200, `${route} should return 200`);
         assert.match(await response.text(), /<h1[ >]/, `${route} view-source contains rendered heading HTML`);
         await page.waitForSelector(`.site.theme-${theme}`);
-        if (route === '/') await page.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') !== 'loading', { timeout: 7000 });
         await new Promise((resolve) => setTimeout(resolve, 120));
         const summary = await page.evaluate(() => ({
           noindex: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
@@ -84,7 +83,10 @@ try {
           favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href'),
           touchIcon: document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'),
           socialImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content'),
-          webglState: document.querySelector('.webgl-slot')?.getAttribute('data-state') || null,
+          heroImage: (() => { const image = document.querySelector('.hero-photo img'); return image ? { currentSrc: image.currentSrc, naturalWidth: image.naturalWidth, fetchPriority: image.fetchPriority } : null; })(),
+          heroPreloads: document.querySelectorAll('link[rel="preload"][as="image"][href*="/hero-robin/"]').length,
+          heroParagraphs: document.querySelectorAll('.home-hero p').length,
+          heroLinks: [...document.querySelectorAll('.home-hero nav a')].map((link) => link.getAttribute('href')),
           emptyBands: [...document.querySelectorAll('main section')].filter((section) => {
             const box = section.getBoundingClientRect();
             const meaningful = section.textContent?.trim() || section.querySelector('img, canvas, form');
@@ -102,7 +104,15 @@ try {
         assert.equal(summary.touchIcon, '/brand/apple-touch-icon.png', `${route} exposes the touch icon`);
         assert.match(summary.socialImage || '', /social-card\.png$/, `${route} exposes the logo social image`);
         assert.equal(summary.emptyBands, 0, `${route} has no empty visual bands`);
-        if (route === '/') assert.ok(['ready', 'fallback', 'static'].includes(summary.webglState), 'home exposes a rendered WebGL layer or static fallback');
+        if (route === '/') {
+          assert.match(summary.h1, /^RobinClevett$/, 'home hero names Robin without a tagline');
+          assert.equal(summary.heroParagraphs, 0, 'home hero contains no tagline or marketing copy');
+          assert.deepEqual(summary.heroLinks, ['/shop/', '/app/'], 'home hero exposes only Products and App entry points');
+          assert.equal(summary.heroPreloads, 2, 'home preloads the viewport-appropriate AVIF hero source');
+          assert.ok(summary.heroImage?.naturalWidth > 0, 'home hero image is decoded');
+          assert.equal(summary.heroImage?.fetchPriority, 'high', 'home hero image has high fetch priority');
+          assert.match(summary.heroImage?.currentSrc || '', /hero-robin-(640|960|1440|2560)\.avif$/, 'home selects a responsive AVIF hero source');
+        }
         if (route === '/shop/') {
           assert.equal(await page.$$eval('.product-card', (cards) => cards.length), 11, 'shop renders all 11 committed Shopify products');
           assert.equal(await page.$$eval('.product-card a[href^="/go/shop?product="]', (links) => links.length >= 11), true, 'every shop product buys through the click tracker');
@@ -173,9 +183,8 @@ try {
   await reduced.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
   await reduced.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await reduced.goto(baseUrl, { waitUntil: 'networkidle0' });
-  await reduced.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') === 'fallback');
-  const reducedState = await reduced.$eval('.webgl-slot', (element) => ({ state: element.getAttribute('data-state'), reason: element.getAttribute('data-webgl-reason') }));
-  assert.deepEqual(reducedState, { state: 'fallback', reason: 'reduced-motion' }, 'reduced motion keeps the designed static fallback');
+  const reducedState = await reduced.$eval('.home-hero', (element) => ({ hero: element.querySelector('img')?.complete ? 'static-photo' : 'missing', webgl: Boolean(element.querySelector('canvas, .webgl-slot')) }));
+  assert.deepEqual(reducedState, { hero: 'static-photo', webgl: false }, 'reduced motion keeps the static photo hero without a canvas layer');
   await reduced.close();
 
   const performancePage = await browser.newPage();
