@@ -3,19 +3,38 @@ export type Route = {
   title: string;
   description: string;
   navLabel?: string;
+  sitemap?: boolean;
 };
 
 export const routes: Route[] = [
   { path: '/', title: 'Robin Clevett | Construction', description: 'Construction projects, practical videos, tools and RC Calculators.', navLabel: 'Home' },
-  { path: '/about/', title: 'About Robin Clevett', description: 'Robin Clevett: construction industry fanatic, sharing work and practical knowledge.', navLabel: 'About' },
-  { path: '/services/', title: 'Construction services | Robin Clevett', description: 'A clear overview of Robin Clevett construction services.', navLabel: 'Services' },
-  { path: '/projects/', title: 'Projects | Robin Clevett', description: 'Selected construction project imagery from Robin Clevett.', navLabel: 'Projects' },
   { path: '/videos/', title: 'Videos | Robin Clevett', description: 'Recent practical videos from Robin Clevett.', navLabel: 'Videos' },
-  { path: '/tools-and-jigs/', title: 'Tools and Jigs | Robin Clevett', description: 'Visit Robin Clevett’s Tools and Jigs store.', navLabel: 'Tools & Jigs' },
+  { path: '/projects/', title: 'Projects | Robin Clevett', description: 'Selected construction project imagery from Robin Clevett.', navLabel: 'Work' },
+  { path: '/services/', title: 'Construction services | Robin Clevett', description: 'A clear overview of Robin Clevett construction services.', navLabel: 'Services' },
+  { path: '/app/', title: 'RC Calculators | Robin Clevett', description: 'Metric-first RC Calculators for practical construction work.', navLabel: 'App' },
+  { path: '/shop/', title: 'Shop | Robin Clevett', description: 'Browse Robin Clevett’s Tools and Jigs range and open the official store.', navLabel: 'Shop' },
+  { path: '/about/', title: 'About Robin Clevett', description: 'Robin Clevett: construction industry fanatic, sharing work and practical knowledge.' },
+  { path: '/robin-recommends/', title: 'Robin Recommends', description: 'Current, clearly labelled resources recommended by Robin Clevett.' },
   { path: '/contact/', title: 'Contact | Robin Clevett', description: 'How to get in touch with Robin Clevett.', navLabel: 'Contact' },
-  { path: '/calculator-app/', title: 'RC Calculators | Robin Clevett', description: 'The RC Calculators app landing page.' },
+  { path: '/register-interest/', title: 'Register your interest | Robin Clevett', description: 'Register an interest in Robin Clevett updates and services.' },
+  { path: '/legal/privacy/', title: 'Privacy notice | Robin Clevett', description: 'How the Robin Clevett website handles personal information.' },
+  { path: '/legal/terms/', title: 'Website terms | Robin Clevett', description: 'Terms for using the Robin Clevett website.' },
+  { path: '/legal/disclaimer/', title: 'Disclaimer | Robin Clevett', description: 'Important limits for construction information on this website.' },
+  { path: '/legal/cookies/', title: 'Cookie notice | Robin Clevett', description: 'Analytics and privacy choices on the Robin Clevett website.' },
+  { path: '/calculator-app/', title: 'RC Calculators | Robin Clevett', description: 'The preserved RC Calculators app landing page.', sitemap: false },
   { path: '/calculator-app/privacy/', title: 'RC Calculators privacy | Robin Clevett', description: 'Privacy information for RC Calculators.' },
   { path: '/calculator-app/terms/', title: 'RC Calculators terms | Robin Clevett', description: 'Terms of use for RC Calculators.' },
+  { path: '/tools-and-jigs/', title: 'Shop | Robin Clevett', description: 'The preserved Tools and Jigs route.', sitemap: false },
+  { path: '/404/', title: 'Page not found | Robin Clevett', description: 'That page could not be found.', sitemap: false },
+  { path: '/admin/', title: 'Robweb admin', description: 'Secure content administration.', sitemap: false },
+  { path: '/admin/pages/', title: 'Pages | Robweb admin', description: 'Manage structured Robweb content.', sitemap: false },
+  { path: '/admin/media/', title: 'Media | Robweb admin', description: 'Manage Robweb media.', sitemap: false },
+  { path: '/admin/forms/', title: 'Forms | Robweb admin', description: 'Manage form responses.', sitemap: false },
+  { path: '/admin/analytics/', title: 'Analytics | Robweb admin', description: 'Review aggregate site analytics.', sitemap: false },
+  { path: '/admin/users/', title: 'Users | Robweb admin', description: 'Manage admin users.', sitemap: false },
+  { path: '/admin/settings/', title: 'Settings | Robweb admin', description: 'Manage Robweb settings.', sitemap: false },
+  { path: '/admin/login/', title: 'Sign in | Robweb admin', description: 'Secure Robweb admin sign in.', sitemap: false },
+  { path: '/admin/set-password/', title: 'Set password | Robweb admin', description: 'Complete a secure Robweb invitation.', sitemap: false },
 ];
 
 export const navRoutes = routes.filter((route) => route.navLabel);
@@ -52,4 +71,6 @@ export const projectImages = [
   },
 ];
 
-export const shopUrl = 'https://toolsandjigs.com/?utm_source=robweb&utm_medium=website&utm_campaign=public-shell';
+export function shopUrl(sourcePath: string, target = 'https://toolsandjigs.com/') {
+  return `/go/shop?source=${encodeURIComponent(sourcePath)}&target=${encodeURIComponent(target)}`;
+}

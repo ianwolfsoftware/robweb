@@ -7,7 +7,7 @@ import puppeteer from 'puppeteer-core';
 const port = 4173;
 const baseUrl = `http://127.0.0.1:${port}`;
 const evidenceDir = process.env.ROBWEB_EVIDENCE_DIR;
-const routes = ['/', '/about/', '/services/', '/projects/', '/videos/', '/tools-and-jigs/', '/contact/', '/calculator-app/', '/calculator-app/privacy/', '/calculator-app/terms/'];
+const routes = ['/', '/app/', '/shop/', '/videos/', '/about/', '/services/', '/projects/', '/robin-recommends/', '/contact/', '/register-interest/', '/legal/privacy/', '/legal/terms/', '/legal/disclaimer/', '/legal/cookies/', '/calculator-app/', '/calculator-app/privacy/', '/calculator-app/terms/', '/404/'];
 const server = spawn(process.execPath, ['node_modules/vite/bin/vite.js', 'preview', '--host', '127.0.0.1', '--port', String(port), '--strictPort'], {
   stdio: ['ignore', 'pipe', 'pipe'],
 });
@@ -49,6 +49,7 @@ try {
     currentRoute = route;
     const response = await desktop.goto(`${baseUrl}${route}`, { waitUntil: 'networkidle0' });
     assert.equal(response?.status(), 200, `${route} should return 200`);
+    assert.match(await response.text(), /<h1[ >]/, `${route} view-source contains rendered heading HTML`);
     const summary = await desktop.evaluate(() => ({
       noindex: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
       h1: document.querySelector('h1')?.textContent?.trim(),
@@ -60,12 +61,19 @@ try {
   }
 
   await desktop.goto(baseUrl, { waitUntil: 'networkidle0' });
+  assert.equal(await desktop.$('script[data-robweb-ga]'), null, 'GA4 script is absent before consent');
   await desktop.keyboard.press('Tab');
   assert.equal(await desktop.evaluate(() => document.activeElement?.className), 'skip-link', 'first keyboard target is skip link');
   await desktop.click('.theme-toggle');
   assert.ok(await desktop.evaluate(() => document.querySelector('.site')?.classList.contains('theme-dark')), 'theme control changes appearance');
   assert.equal(await desktop.$eval('.desktop-nav', (element) => getComputedStyle(element).display), 'flex', 'desktop navigation is visible');
   if (evidenceDir) await desktop.screenshot({ path: `${evidenceDir}/desktop-home.png`, fullPage: true });
+
+  await desktop.goto(`${baseUrl}/admin/`, { waitUntil: 'networkidle0' });
+  await desktop.waitForSelector('.admin-login-card form');
+  assert.match(await desktop.$eval('h1', (element) => element.textContent ?? ''), /Sign in securely/, 'admin defaults to secure sign in');
+  assert.equal(await desktop.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'desktop admin has no horizontal overflow');
+  if (evidenceDir) await desktop.screenshot({ path: `${evidenceDir}/desktop-admin.png`, fullPage: true });
 
   const mobile = await browser.newPage();
   await mobile.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
@@ -74,7 +82,7 @@ try {
     const url = new URL(request.url());
     if (url.origin !== baseUrl && url.protocol !== 'data:') externalRequests.add(url.origin);
   });
-  await mobile.goto(`${baseUrl}/tools-and-jigs/`, { waitUntil: 'networkidle0' });
+  await mobile.goto(`${baseUrl}/shop/`, { waitUntil: 'networkidle0' });
   const mobileControl = await mobile.$eval('.mobile-nav summary', (element) => {
     const rect = element.getBoundingClientRect();
     return { width: rect.width, height: rect.height };
@@ -84,6 +92,10 @@ try {
   assert.equal(await mobile.$$eval('.mobile-nav nav a', (links) => links.length), 8, 'mobile menu exposes every public navigation route');
   assert.equal(await mobile.$eval('.desktop-nav', (element) => getComputedStyle(element).display), 'none', 'desktop navigation is hidden on mobile');
   if (evidenceDir) await mobile.screenshot({ path: `${evidenceDir}/mobile-tools-and-jigs.png`, fullPage: true });
+  await mobile.goto(`${baseUrl}/admin/`, { waitUntil: 'networkidle0' });
+  await mobile.waitForSelector('.admin-login-card form');
+  assert.equal(await mobile.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth), true, 'mobile admin has no horizontal overflow');
+  if (evidenceDir) await mobile.screenshot({ path: `${evidenceDir}/mobile-admin.png`, fullPage: true });
 
   await browser.close();
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
