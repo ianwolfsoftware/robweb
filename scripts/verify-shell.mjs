@@ -72,6 +72,15 @@ try {
         assert.match(await response.text(), /<h1[ >]/, `${route} view-source contains rendered heading HTML`);
         await page.waitForSelector(`.site.theme-${theme}`);
         await new Promise((resolve) => setTimeout(resolve, 120));
+        if (route === '/') {
+          await page.waitForFunction(() => ['.hero-logo', '.hero-title', '.home-hero .button-row'].every((selector) => {
+            const element = document.querySelector(selector);
+            if (!element) return false;
+            const box = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return Number(style.opacity) >= .99 && style.visibility === 'visible' && box.width > 0 && box.height > 0;
+          }), { timeout: 4000 });
+        }
         const summary = await page.evaluate(() => ({
           noindex: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
           h1Count: document.querySelectorAll('h1').length,
@@ -87,6 +96,13 @@ try {
           heroPreloads: document.querySelectorAll('link[rel="preload"][as="image"][href*="/hero-robin/"]').length,
           heroParagraphs: document.querySelectorAll('.home-hero p').length,
           heroLinks: [...document.querySelectorAll('.home-hero nav a')].map((link) => link.getAttribute('href')),
+          heroControlsVisible: ['.hero-logo', '.hero-title', '.home-hero .button-row'].every((selector) => {
+            const element = document.querySelector(selector);
+            if (!element) return false;
+            const box = element.getBoundingClientRect();
+            const style = getComputedStyle(element);
+            return Number(style.opacity) >= .99 && style.visibility === 'visible' && box.width > 0 && box.height > 0;
+          }),
           emptyBands: [...document.querySelectorAll('main section')].filter((section) => {
             const box = section.getBoundingClientRect();
             const meaningful = section.textContent?.trim() || section.querySelector('img, canvas, form');
@@ -108,6 +124,7 @@ try {
           assert.match(summary.h1, /^RobinClevett$/, 'home hero names Robin without a tagline');
           assert.equal(summary.heroParagraphs, 0, 'home hero contains no tagline or marketing copy');
           assert.deepEqual(summary.heroLinks, ['/shop/', '/app/'], 'home hero exposes only Products and App entry points');
+          assert.equal(summary.heroControlsVisible, true, 'home hero logo, name and actions are visibly settled');
           assert.equal(summary.heroPreloads, 2, 'home preloads the viewport-appropriate AVIF hero source');
           assert.ok(summary.heroImage?.naturalWidth > 0, 'home hero image is decoded');
           assert.equal(summary.heroImage?.fetchPriority, 'high', 'home hero image has high fetch priority');
