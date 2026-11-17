@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { spawn } from 'node:child_process';
-import { mkdir, writeFile } from 'node:fs/promises';
+import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import process from 'node:process';
 import puppeteer from 'puppeteer-core';
 
@@ -13,7 +13,8 @@ const routes = [
   ['calculator-app', '/calculator-app/'], ['calculator-privacy', '/calculator-app/privacy/'],
   ['calculator-terms', '/calculator-app/terms/'], ['404', '/404/'],
 ];
-const redirects = ['/videos/', '/projects/', '/services/', '/robin-recommends/', '/about/', '/register-interest/', '/tools-and-jigs/'];
+const redirectMap = JSON.parse(await readFile(new URL('../content/redirects.json', import.meta.url), 'utf8'));
+const redirects = Object.keys(redirectMap);
 const viewports = [
   ['mobile', { width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 }],
   ['desktop', { width: 1440, height: 900, isMobile: false, deviceScaleFactor: 1 }],
@@ -159,6 +160,7 @@ try {
   for (const route of redirects) {
     const response = await fetch(`${baseUrl}${route}`, { redirect: 'manual' });
     assert.equal(response.status, 301, `${route} is a permanent redirect`);
+    assert.equal(response.headers.get('location'), redirectMap[route], `${route} uses the source-controlled redirect target`);
     assert.ok(['/', '/shop/'].includes(response.headers.get('location')), `${route} redirects to Home or Shop`);
   }
   const missing = await fetch(`${baseUrl}/definitely-missing/`, { redirect: 'manual' });
