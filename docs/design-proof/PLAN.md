@@ -1,6 +1,6 @@
 # Premium visual rebuild plan
 
-Task: `ee45a2c7-515b-4c0e-8ed9-aa93b50dd13f`  
+Task: `ee45a2c7-515b-4c0e-8ed9-aa93b50dd13f`
 Prepared: 17 November 2026
 
 ## Direction and audience

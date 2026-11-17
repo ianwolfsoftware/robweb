@@ -1,6 +1,6 @@
 # Premium visual rebuild — verification report
 
-Task: `ee45a2c7-515b-4c0e-8ed9-aa93b50dd13f`  
+Task: `ee45a2c7-515b-4c0e-8ed9-aa93b50dd13f`
 Branch: `codex/desk/robweb/ee45a2c7-515b-4c0e-8ed9-aa93b50dd13f`
 
 ## Outcome
