@@ -1,0 +1,17 @@
+{
+  "name": "robweb-design-lab",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "serve": "node server.mjs",
+    "capture": "node capture.mjs",
+    "verify": "node verify.mjs"
+  },
+  "dependencies": {
+    "animejs": "4.5.0",
+    "three": "0.187.0"
+  },
+  "devDependencies": {
+    "playwright-core": "1.65.1"
+  }
+}
