@@ -332,7 +332,7 @@ export function WebglSlot() {
         const battery = await hints.getBattery?.();
         if (battery && !battery.charging && battery.level <= .2) return 'low-battery';
       } catch { /* Battery status is optional. */ }
-      if (matchMedia('(max-width: 47.99rem)').matches) return 'compact-screen';
+      // 18 Nov 2026 (Ian): phones get the live 3D logo too, small, at the portrait's bottom-right; the other gates still apply.
       const probe = document.createElement('canvas');
       if (!probe.getContext('webgl2') && !probe.getContext('webgl')) return 'no-webgl';
       return null;

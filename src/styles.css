@@ -585,3 +585,14 @@
 }
 /* Preserve the concurrent portal hotfix's stable header while the top-layer dialog owns the controls. */
 body.menu-is-open .site-header { transform: none !important; }
+/* 18 Nov 2026 (Ian, on his phone): no top bar on phones (the dock has the logo + menu), no duplicate ROBIN CLEVETT
+   wordmark/marquee under the portrait, and the live 3D RC logo sits in the portrait frame's bottom-right corner. */
+@media (max-width: 41.99rem) {
+  .site-header { display: none; }
+  .mobile-menu-panel { inset: 0; padding-top: 2rem; }
+  .home-hero { padding-top: 1.25rem; }
+  .hero-title { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .name-marquee { display: none; }
+  .hero-stage .webgl-slot { display: block; top: auto; right: 3%; bottom: 3%; width: 44%; height: auto; aspect-ratio: 1; opacity: 1; z-index: 4; transform: none; filter: drop-shadow(0 .6rem 1rem rgb(0 0 0 / 55%)); }
+  .hero-stage .webgl-slot span { display: none; }
+}
