@@ -15,9 +15,11 @@ export function createNotificationTransport(config: AppConfig): NotificationTran
   });
   return {
     async formReceived(submission) {
+      const recipient = submission.type === 'cladding' ? config.CLADDING_NOTIFY_EMAIL : config.FORM_NOTIFICATION_TO;
+      if (!recipient) return;
       await transport.sendMail({
         from: config.SMTP_USER,
-        to: config.FORM_NOTIFICATION_TO,
+        to: recipient,
         subject: `Robweb ${submission.type} form received`,
         text: `A new ${submission.type} submission is available in the Robweb admin inbox. Reference: ${submission.id}`,
       });

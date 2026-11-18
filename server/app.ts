@@ -1,22 +1,36 @@
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
 import bcrypt from 'bcryptjs';
 import cookieParser from 'cookie-parser';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import rateLimit from 'express-rate-limit';
 import helmet from 'helmet';
 import { z } from 'zod';
-import { sectionTypes, type FormStatus, type UserRecord } from '../shared/types.js';
+import { contentItemKinds, sectionTypes, type AdminContentItem, type ContentControl, type FormStatus, type MediaFeedItem, type UserRecord } from '../shared/types.js';
+import { curatedInterviews, curatedPress, mediaSources } from '../shared/media-content.js';
 import type { AppConfig } from './config.js';
 import type { NotificationTransport } from './notifications.js';
 import type { Repository } from './repository.js';
 import { ShopifyCatalogue } from './shopify.js';
-import { formStatusSchema, inviteSchema, loginSchema, publicFormSchema, setPasswordSchema, utcDay, visitSchema } from './validation.js';
+import { MediaFeeds } from './media-feeds.js';
+import { claddingFormSchema, formStatusSchema, inviteSchema, loginSchema, mediaFormSchema, publicFormSchema, setPasswordSchema, utcDay, visitSchema } from './validation.js';
 
 const SESSION_COOKIE = 'robweb_session';
 const shopOrigin = 'https://toolsandjigs.com';
 const sourceSchema = z.string().startsWith('/').max(240).regex(/^\/[A-Za-z0-9/_-]*$/).default('/');
 const productSchema = z.string().max(181).regex(/^[\p{L}\p{N}][\p{L}\p{N}®_-]{0,180}$/u);
 const settingsSchema = z.object({ form_retention_days: z.coerce.number().int().min(1).max(730) }).strict();
+const contentControlSchema = z.object({
+  hidden: z.boolean(), pinned: z.boolean(), position: z.number().int().min(0).max(10_000).nullable(),
+}).strict();
+const partnerSchema = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/).optional(),
+  name: z.string().trim().min(1).max(120),
+  url: z.string().trim().startsWith('https://').max(500),
+  logoPath: z.union([z.string().trim().regex(/^\/partners\/[A-Za-z0-9._-]+$/), z.literal(''), z.null()]).optional(),
+  evidenceUrl: z.string().trim().startsWith('https://').max(500),
+  position: z.coerce.number().int().min(0).max(10_000),
+  active: z.boolean(),
+}).strict();
 const sectionSchema = z.object({
   id: z.string().max(64), type: z.enum(sectionTypes), position: z.number().int().min(0).max(200),
   data: z.record(z.string(), z.union([z.string(), z.number(), z.boolean(), z.array(z.string())])),
@@ -35,10 +49,17 @@ function validationError(response: Response, error: z.ZodError) {
 }
 function csvCell(value: unknown) { return `"${String(value ?? '').replaceAll('"', '""')}"`; }
 function routeParam(value: string | string[]) { return Array.isArray(value) ? value[0] : value; }
+function applyControls<T extends { key: string }>(items: T[], controls: ContentControl[], kind: ContentControl['kind']) {
+  const map = new Map(controls.filter((row) => row.kind === kind).map((row) => [row.key, row]));
+  return items.filter((item) => !map.get(item.key)?.hidden).map((item, index) => ({ item, index, control: map.get(item.key) }))
+    .sort((a, b) => Number(Boolean(b.control?.pinned)) - Number(Boolean(a.control?.pinned)) || (a.control?.position ?? a.index) - (b.control?.position ?? b.index))
+    .map(({ item, control }) => ({ ...item, pinned: control?.pinned || undefined }));
+}
 
 export function createApp({ repository, config, notifications }: { repository: Repository; config: AppConfig; notifications: NotificationTransport }) {
   const app = express();
   const shopify = new ShopifyCatalogue(config.SHOPIFY_STOREFRONT_TOKEN);
+  const mediaFeeds = new MediaFeeds();
   app.disable('x-powered-by');
   app.set('trust proxy', 1);
   app.use(helmet({
@@ -83,11 +104,13 @@ export function createApp({ repository, config, notifications }: { repository: R
   app.get('/api/health', (_request, response) => response.json({ ok: true, service: 'robweb-api' }));
 
   app.post('/api/forms/:type', formLimit, asyncRoute(async (request, response) => {
-    if (request.params.type !== 'contact' && request.params.type !== 'interest') return response.status(404).json({ error: 'not_found' });
-    const parsed = publicFormSchema.safeParse(request.body);
+    const type = routeParam(request.params.type);
+    if (!['contact', 'interest', 'media', 'cladding'].includes(type)) return response.status(404).json({ error: 'not_found' });
+    const schema = type === 'media' ? mediaFormSchema : type === 'cladding' ? claddingFormSchema : publicFormSchema;
+    const parsed = schema.safeParse(request.body);
     if (!parsed.success) return validationError(response, parsed.error);
     const { website: _honeypot, ...fields } = parsed.data;
-    const submission = await repository.createForm(request.params.type as 'contact' | 'interest', fields);
+    const submission = await repository.createForm(type as 'contact' | 'interest' | 'media' | 'cladding', fields);
     await notifications.formReceived(submission);
     return response.status(201).json({ ok: true, reference: submission.id });
   }));
@@ -101,8 +124,30 @@ export function createApp({ repository, config, notifications }: { repository: R
 
   app.get('/api/shop', asyncRoute(async (_request, response) => {
     const catalogue = await shopify.get();
+    const controls = await repository.listContentControls();
+    const products = applyControls(catalogue.products.map((product) => ({ ...product, key: product.handle })), controls, 'product')
+      .map(({ key: _key, pinned: _pinned, ...product }) => product);
     response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=900');
-    return response.json(catalogue);
+    return response.json({ ...catalogue, products });
+  }));
+
+  app.get('/api/media', asyncRoute(async (_request, response) => {
+    let live: Awaited<ReturnType<MediaFeeds['get']>> = { fetchedAt: new Date().toISOString(), youtube: [], episodes: [], counts: { youtube: 0, episodes: 0 }, podcastFeedUrl: '' };
+    try { live = await mediaFeeds.get(); } catch { /* keep verified curated items available during an upstream outage */ }
+    const controls = await repository.listContentControls();
+    const partners = applyControls((await repository.listPartners()).filter((partner) => partner.active).map((partner) => ({ ...partner, key: partner.id })), controls, 'partner')
+      .map(({ key: _key, pinned: _pinned, ...partner }) => partner);
+    response.set('Cache-Control', 'public, max-age=300, stale-while-revalidate=3600');
+    return response.json({
+      fetchedAt: live.fetchedAt,
+      youtube: applyControls(live.youtube, controls, 'youtube'),
+      episodes: applyControls(live.episodes, controls, 'episode'),
+      interviews: applyControls(curatedInterviews, controls, 'interview'),
+      press: applyControls(curatedPress, controls, 'press'),
+      partners,
+      counts: live.counts,
+      sources: { youtube: mediaSources.youtube, podcast: live.podcastFeedUrl, apple: mediaSources.apple, fixRadio: mediaSources.fixRadio },
+    });
   }));
 
   app.get('/go/shop', asyncRoute(async (request, response) => {
@@ -170,6 +215,43 @@ export function createApp({ repository, config, notifications }: { repository: R
     return page ? response.json(page) : response.status(409).json({ error: 'no_previous_revision' });
   }));
   app.get('/api/admin/media', authenticate, asyncRoute(async (_request, response) => response.json(await repository.listMedia())));
+  app.get('/api/admin/content', authenticate, asyncRoute(async (_request, response) => {
+    let live: Awaited<ReturnType<MediaFeeds['get']>> = { fetchedAt: new Date().toISOString(), youtube: [], episodes: [], counts: { youtube: 0, episodes: 0 }, podcastFeedUrl: '' };
+    try { live = await mediaFeeds.get(); } catch { /* admin still exposes curated items and products */ }
+    const [catalogue, controls, partners] = await Promise.all([shopify.get(), repository.listContentControls(), repository.listPartners()]);
+    const controlMap = new Map(controls.map((row) => [`${row.kind}:${row.key}`, row]));
+    const item = (kind: ContentControl['kind'], key: string, title: string, meta: string): AdminContentItem => {
+      const control = controlMap.get(`${kind}:${key}`);
+      return { kind, key, title, meta, hidden: control?.hidden ?? false, pinned: control?.pinned ?? false, position: control?.position ?? null };
+    };
+    const items = [
+      ...live.youtube.map((row) => item('youtube', row.key, row.title, row.published)),
+      ...live.episodes.map((row) => item('episode', row.key, row.title, row.published)),
+      ...curatedInterviews.map((row) => item('interview', row.key, row.title, row.outlet)),
+      ...curatedPress.map((row) => item('press', row.key, row.title, row.outlet)),
+      ...partners.map((row) => item('partner', row.id, row.name, `order ${row.position} · ${row.active ? 'visible' : 'inactive'}`)),
+      ...catalogue.products.map((row) => item('product', row.handle, row.title, `${row.currency} ${row.price}`)),
+    ];
+    return response.json({ items, partners });
+  }));
+  app.put('/api/admin/content/:kind/:key', authenticate, csrf, asyncRoute(async (request: AuthenticatedRequest, response) => {
+    const kind = z.enum(contentItemKinds).safeParse(routeParam(request.params.kind));
+    const key = z.string().min(1).max(255).regex(/^[A-Za-z0-9._-]+$/).safeParse(routeParam(request.params.key));
+    const values = contentControlSchema.safeParse(request.body);
+    if (!kind.success || !key.success || !values.success) return response.status(422).json({ error: 'validation_failed' });
+    return response.json(await repository.upsertContentControl(kind.data, key.data, values.data, request.robwebUser!.id));
+  }));
+  app.post('/api/admin/partners', authenticate, csrf, asyncRoute(async (request: AuthenticatedRequest, response) => {
+    const parsed = partnerSchema.safeParse(request.body);
+    if (!parsed.success) return validationError(response, parsed.error);
+    const partner = { ...parsed.data, id: parsed.data.id ?? randomUUID(), logoPath: parsed.data.logoPath || null };
+    return response.status(201).json(await repository.savePartner(partner, request.robwebUser!.id));
+  }));
+  app.put('/api/admin/partners/:id', authenticate, csrf, asyncRoute(async (request: AuthenticatedRequest, response) => {
+    const parsed = partnerSchema.safeParse({ ...request.body, id: routeParam(request.params.id) });
+    if (!parsed.success) return validationError(response, parsed.error);
+    return response.json(await repository.savePartner({ ...parsed.data, id: parsed.data.id!, logoPath: parsed.data.logoPath || null }, request.robwebUser!.id));
+  }));
   app.get('/api/admin/forms', authenticate, asyncRoute(async (request, response) => {
     const status = typeof request.query.status === 'string' && ['new', 'handled', 'spam'].includes(request.query.status) ? request.query.status as FormStatus : undefined;
     return response.json(await repository.listForms(status));
@@ -182,8 +264,8 @@ export function createApp({ repository, config, notifications }: { repository: R
   }));
   app.get('/api/admin/forms.csv', authenticate, asyncRoute(async (_request, response) => {
     const rows = await repository.listForms();
-    const header = ['reference', 'type', 'status', 'created', 'name', 'email', 'phone', 'subject', 'message'];
-    const body = [header, ...rows.map((row) => [row.id, row.type, row.status, row.createdAt, row.fields.name, row.fields.email, row.fields.phone, row.fields.subject, row.fields.message])]
+    const header = ['reference', 'type', 'status', 'created', 'name', 'email', 'phone', 'subject', 'organisation', 'enquiry_type', 'deadline', 'cladding_ref', 'square_metres', 'lead_time', 'uk_location', 'message'];
+    const body = [header, ...rows.map((row) => [row.id, row.type, row.status, row.createdAt, row.fields.name, row.fields.email, row.fields.phone, row.fields.subject, row.fields.organisation, row.fields.enquiryType, row.fields.deadline, row.fields.claddingRef, row.fields.squareMetres, row.fields.leadTime, row.fields.ukLocation, row.fields.message])]
       .map((row) => row.map(csvCell).join(',')).join('\n');
     response.type('text/csv').attachment('robweb-form-submissions.csv');
     return response.send(body);
@@ -210,7 +292,7 @@ export function createApp({ repository, config, notifications }: { repository: R
     response.type('text/plain').send(config.goLive ? 'User-agent: *\nAllow: /\nDisallow: /admin\nDisallow: /api\n' : 'User-agent: *\nDisallow: /\n');
   });
   app.get('/sitemap.xml', (_request, response) => {
-    const paths = ['/', '/shop/', '/app/', '/contact/', '/legal/privacy/', '/legal/terms/', '/legal/disclaimer/', '/legal/cookies/', '/calculator-app/', '/calculator-app/privacy/', '/calculator-app/terms/'];
+    const paths = ['/', '/media/', '/shop/', '/app/', '/contact/', '/cladding/', '/legal/privacy/', '/legal/terms/', '/legal/disclaimer/', '/legal/cookies/', '/calculator-app/', '/calculator-app/privacy/', '/calculator-app/terms/'];
     response.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${paths.map((value) => `<url><loc>${config.PUBLIC_ORIGIN}${value}</loc></url>`).join('')}</urlset>`);
   });
 

@@ -12,6 +12,32 @@ export const publicFormSchema = z.object({
   website: z.string().max(0).optional().default(''),
 }).strict();
 
+export const mediaFormSchema = z.object({
+  name: cleanText(120),
+  email: z.email().max(254),
+  phone: z.string().trim().max(40).optional().default(''),
+  organisation: z.string().trim().max(160).optional().default(''),
+  enquiryType: cleanText(80),
+  deadline: z.string().trim().max(120).optional().default(''),
+  subject: cleanText(160),
+  message: cleanText(4000),
+  consent: z.literal(true),
+  website: z.string().max(0).optional().default(''),
+}).strict();
+
+export const claddingFormSchema = z.object({
+  claddingRef: cleanText(120),
+  squareMetres: cleanText(80),
+  leadTime: cleanText(120),
+  ukLocation: cleanText(180),
+  name: cleanText(120),
+  email: z.email().max(254),
+  phone: cleanText(40),
+  message: z.string().trim().max(4000).optional().default(''),
+  consent: z.literal(true),
+  website: z.string().max(0).optional().default(''),
+}).strict();
+
 export const visitSchema = z.object({
   path: z.string().trim().startsWith('/').max(240).regex(/^\/[A-Za-z0-9/_-]*$/),
   referrerHost: z.string().trim().max(255).regex(/^[A-Za-z0-9.-]*$/).default('direct'),

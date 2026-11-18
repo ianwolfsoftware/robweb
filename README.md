@@ -6,12 +6,14 @@ The live LXC still serves the existing holding page on port 6980 through `serve.
 
 ## What is included
 
-- Static-prerendered public routes for Home, Shop, App, Contact, four legal pages, stable calculator-app legal URLs and 404. Retired Work, Videos, Services, Recommends, About and Register-interest URLs permanently redirect to a remaining route.
+- Static-prerendered public routes for Home, Media, Shop, App, Contact, Thermowood Cladding, four legal pages, stable calculator-app legal URLs and 404. The retired `/landing/cladding.php` address now permanently redirects to `/cladding/`.
+- Hourly in-memory YouTube and Fix Radio feed caches. Apple podcast ID `1514645020` is resolved through the iTunes lookup API before the RSS feed is read. YouTube players use `youtube-nocookie.com` and are created only after a visitor chooses a video.
+- Verified interviews, press links and partner destinations, with source-controlled official StairBox and Tools & Jigs assets. Public ordering/visibility is managed in the protected admin.
 - A live Tools & Jigs product catalogue fetched server-side from Shopify with a 15-minute in-memory cache, a six-second timeout, a polite user agent and a current committed snapshot fallback. Product images stay on Shopify's CDN and buying stays on Shopify through the aggregate `/go/shop?product=` click tracker.
 - Fixed content blocks only: Hero, Feature list, Proof, Shop CTA, App CTA, Video grid, FAQ, Contact CTA, Text and Image. Content cannot inject arbitrary HTML or script.
-- Admin routes for aggregate analytics, page revisions/publish/revert, media inventory, forms inbox/CSV export, users and settings.
+- Admin routes for aggregate analytics, page revisions/publish/revert, media inventory, pin/hide/order controls for videos, episodes, editorial items and products, partner editing, forms inbox/CSV export, users and settings.
 - Owner/editor invitations, one-time password setup, bcrypt password hashes, server-side sessions, secure same-site cookies, CSRF tokens and rate limits. There are no default credentials.
-- Validated contact/interest forms with a honeypot, rate limiting, project-owned storage and optional SMTP notification. SMTP is disabled by default and sends only the inbox reference, not submitted fields.
+- Validated contact/interest, media and cladding forms with a honeypot, rate limiting, project-owned storage and optional SMTP notification. All submit to `POST /api/forms/:type`; SMTP is disabled by default and sends only the inbox reference, not submitted fields.
 - First-party aggregate counters with no IP field and safe `/go/shop` click logging. The client sends counters only after analytics consent while the Irish ePrivacy basis is confirmed with Ian/Paul.
 - Consent-first GA4: no Google script or request before positive consent. The configured property is `G-XQNLT1H91R` unless deployment configuration changes it.
 - Locked npm dependencies, unit/API tests, TypeScript checks, prerender build, sitemap, disallow-all robots policy and security headers.
@@ -42,7 +44,7 @@ The build writes prerendered HTML to `dist/` and compiled API code to `build-ser
 
 Copy `.env.example` and keep `.env` private. Production refuses `REPOSITORY=memory`; MariaDB credentials are mandatory. App-store destinations stay visibly labelled as unavailable until approved URLs are supplied. `SHOPIFY_STOREFRONT_TOKEN` is an optional read-only fallback; the public feed remains the default and the site does not require the token. `GO_LIVE=false` and the generated/public metadata remain noindex until a separate approval changes them.
 
-Form retention defaults to 90 days and is owner-editable. Media rows accept JPEG, PNG, WebP or AVIF, up to 10 MB, with non-empty alt text. The current source-controlled inventory remains governed by `content/assets.json`.
+Form retention defaults to 90 days and is owner-editable. `CLADDING_NOTIFY_EMAIL` is intentionally blank until Robin confirms the recipient; cladding submissions still persist and appear in admin when it is blank. Media rows accept JPEG, PNG, WebP or AVIF, up to 10 MB, with non-empty alt text. The current source-controlled inventory remains governed by `content/assets.json`.
 
 ## One-time database setup for Ian/Paul review
 
@@ -55,7 +57,7 @@ GRANT SELECT, INSERT, UPDATE, DELETE, CREATE, ALTER, INDEX, REFERENCES ON robweb
 FLUSH PRIVILEGES;
 ```
 
-The same statements are in `db/setup.sql`. The canonical current schema is `db/schema.sql`; ordered changes are in `db/migrations/001_initial.sql` and `002_seed_content.sql`. Migrations are deliberately not hidden in `npm start`, build or deploy commands.
+The same statements are in `db/setup.sql`. The canonical current schema is `db/schema.sql`; ordered changes are in `db/migrations/001_initial.sql`, `002_seed_content.sql` and `003_media_cladding_partners.sql`. Migration 003 expands the form type enum and adds `content_controls` and `partners`; it has not been applied. Migrations are deliberately not hidden in `npm start`, build or deploy commands.
 
 After schema review/application, create the first expiring owner link without sharing a password:
 

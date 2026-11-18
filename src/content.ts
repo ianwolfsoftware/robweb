@@ -10,9 +10,11 @@ export type Route = {
 
 export const routes: Route[] = [
   { path: '/', title: 'Robin Clevett | Tools & RC Calculators', description: 'Shop Robin Clevett’s Tools & Jigs products and discover the RC Calculators app.', navLabel: 'Home' },
+  { path: '/media/', title: 'Watch & listen | Robin Clevett', description: 'Watch Robin Clevett on YouTube and listen to The Carpentry Show on Fix Radio.', navLabel: 'Media' },
   { path: '/shop/', title: 'Shop | Robin Clevett', description: 'Browse the live Tools & Jigs product range, then buy from the official Shopify store.', navLabel: 'Shop' },
   { path: '/app/', title: 'RC Calculators | Robin Clevett', description: 'Metric-first RC Calculators for practical construction work.', navLabel: 'App' },
   { path: '/contact/', title: 'Contact | Robin Clevett', description: 'How to get in touch with Robin Clevett.', navLabel: 'Contact' },
+  { path: '/cladding/', title: 'Thermowood cladding enquiries | Robin Clevett', description: 'Request a Thermowood cladding price at Robin’s YouTube subscriber rates.' },
   { path: '/legal/privacy/', title: 'Privacy notice | Robin Clevett', description: 'How the Robin Clevett website handles personal information.' },
   { path: '/legal/terms/', title: 'Website terms | Robin Clevett', description: 'Terms for using the Robin Clevett website.' },
   { path: '/legal/disclaimer/', title: 'Disclaimer | Robin Clevett', description: 'Important limits for construction information on this website.' },
@@ -24,6 +26,7 @@ export const routes: Route[] = [
   { path: '/admin/', title: 'Robweb admin', description: 'Secure content administration.', sitemap: false },
   { path: '/admin/pages/', title: 'Pages | Robweb admin', description: 'Manage structured Robweb content.', sitemap: false },
   { path: '/admin/media/', title: 'Media | Robweb admin', description: 'Manage Robweb media.', sitemap: false },
+  { path: '/admin/content/', title: 'Media content & partners | Robweb admin', description: 'Pin, hide and order public media and partners.', sitemap: false },
   { path: '/admin/forms/', title: 'Forms | Robweb admin', description: 'Manage form responses.', sitemap: false },
   { path: '/admin/analytics/', title: 'Analytics | Robweb admin', description: 'Review aggregate site analytics.', sitemap: false },
   { path: '/admin/users/', title: 'Users | Robweb admin', description: 'Manage admin users.', sitemap: false },

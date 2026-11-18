@@ -13,7 +13,7 @@ export const sectionTypes = [
 
 export type SectionType = (typeof sectionTypes)[number];
 export type UserRole = 'owner' | 'editor';
-export type FormType = 'contact' | 'interest';
+export type FormType = 'contact' | 'interest' | 'media' | 'cladding';
 export type FormStatus = 'new' | 'handled' | 'spam';
 export type DeviceClass = 'phone' | 'tablet' | 'desktop' | 'other';
 
@@ -31,6 +31,13 @@ export type PublicFormFields = {
   subject?: string;
   message: string;
   consent: boolean;
+  organisation?: string;
+  enquiryType?: string;
+  deadline?: string;
+  claddingRef?: string;
+  squareMetres?: string;
+  leadTime?: string;
+  ukLocation?: string;
 };
 
 export type FormSubmission = {
@@ -93,4 +100,68 @@ export type MediaRecord = {
   height: number;
   altText: string;
   createdAt: string;
+};
+
+export const contentItemKinds = ['youtube', 'episode', 'interview', 'press', 'partner', 'product'] as const;
+export type ContentItemKind = (typeof contentItemKinds)[number];
+
+export type ContentControl = {
+  kind: ContentItemKind;
+  key: string;
+  hidden: boolean;
+  pinned: boolean;
+  position: number | null;
+  updatedAt: string;
+};
+
+export type MediaFeedItem = {
+  key: string;
+  kind: Exclude<ContentItemKind, 'partner' | 'product'>;
+  title: string;
+  url: string;
+  published: string;
+  outlet: string;
+  description?: string;
+  thumbnailUrl?: string;
+  audioUrl?: string;
+  duration?: string;
+  pinned?: boolean;
+};
+
+export type PartnerRecord = {
+  id: string;
+  name: string;
+  url: string;
+  logoPath: string | null;
+  evidenceUrl: string;
+  position: number;
+  active: boolean;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type MediaFeedSnapshot = {
+  fetchedAt: string;
+  youtube: MediaFeedItem[];
+  episodes: MediaFeedItem[];
+  interviews: MediaFeedItem[];
+  press: MediaFeedItem[];
+  partners: PartnerRecord[];
+  counts: { youtube: number; episodes: number };
+  sources: { youtube: string; podcast: string; apple: string; fixRadio: string };
+};
+
+export type AdminContentItem = {
+  kind: ContentItemKind;
+  key: string;
+  title: string;
+  meta: string;
+  hidden: boolean;
+  pinned: boolean;
+  position: number | null;
+};
+
+export type AdminContentSnapshot = {
+  items: AdminContentItem[];
+  partners: PartnerRecord[];
 };
