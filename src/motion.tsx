@@ -364,5 +364,5 @@ export function WebglSlot() {
       }
     };
   }, []);
-  return <div ref={ref} className="webgl-slot" data-state="static" aria-hidden="true"><img src="/brand/logo.svg" width="441" height="224" alt="" /><span>RC · dimensional mark</span></div>;
+  return <div ref={ref} className="webgl-slot" data-state="static" aria-hidden="true"><div className="rc-stack">{Array.from({ length: 14 }, (_, i) => <img key={i} src="/brand/logo.svg" width="441" height="224" alt="" className={i === 0 ? 'rc-stack-front' : 'rc-stack-back'} style={{ transform: `translateZ(${-i * 1.5}px)` }} />)}</div><span>RC · dimensional mark</span></div>;
 }

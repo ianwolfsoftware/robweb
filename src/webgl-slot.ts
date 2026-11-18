@@ -63,7 +63,7 @@ export function mountWebglSlot(container: HTMLElement) {
     if (!visible || document.hidden) return;
     pointer.lerp(targetPointer, .035);
     const elapsed = clock.getElapsedTime();
-    logoRoot.rotation.y = -.38 + elapsed * .42 + pointer.x * .13 + scrollProgress * .46; // 18 Nov 2026 (Ian): a slow, real turn (~15 s per revolution)
+    logoRoot.rotation.y = Math.sin(elapsed * .5) * .68 + pointer.x * .13 + scrollProgress * .2; // 18 Nov 2026 (Ian): a slow swing (about ±39°) that never goes edge-on
     logoRoot.rotation.x = -.08 + pointer.y * .075;
     logoRoot.rotation.z = -.045 + Math.sin(elapsed * .28) * .014;
     logoRoot.position.y = logoBaseY + Math.sin(elapsed * .48) * .035 - scrollProgress * .08;
@@ -100,11 +100,11 @@ export function mountWebglSlot(container: HTMLElement) {
     data.paths.forEach((path) => {
       SVGLoader.createShapes(path).forEach((shape) => {
         const geometry = new THREE.ExtrudeGeometry(shape, {
-          depth: 8,
+          depth: 34,
           bevelEnabled: true,
           bevelSegments: 3,
-          bevelSize: 1.1,
-          bevelThickness: 1.25,
+          bevelSize: 2.2,
+          bevelThickness: 3,
           curveSegments: 10,
         });
         geometry.computeVertexNormals();
