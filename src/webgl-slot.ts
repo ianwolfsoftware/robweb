@@ -63,10 +63,10 @@ export function mountWebglSlot(container: HTMLElement) {
     if (!visible || document.hidden) return;
     pointer.lerp(targetPointer, .035);
     const elapsed = clock.getElapsedTime();
-    logoRoot.rotation.y = Math.sin(elapsed * .5) * .68 + pointer.x * .13 + scrollProgress * .2; // 18 Nov 2026 (Ian): a slow swing (about ±39°) that never goes edge-on
-    logoRoot.rotation.x = -.08 + pointer.y * .075;
-    logoRoot.rotation.z = -.045 + Math.sin(elapsed * .28) * .014;
-    logoRoot.position.y = logoBaseY + Math.sin(elapsed * .48) * .035 - scrollProgress * .08;
+    logoRoot.rotation.y = elapsed * .55; // 18 Nov 2026 (Ian): spin steadily in one place (~11 s a turn); the extrusion keeps it solid side-on
+    logoRoot.rotation.x = -.08;
+    logoRoot.rotation.z = 0;
+    logoRoot.position.y = logoBaseY;
     rim.position.x = 4 - scrollProgress * 7.5;
     renderer.render(scene, camera);
     raf = requestAnimationFrame(draw);
@@ -113,12 +113,14 @@ export function mountWebglSlot(container: HTMLElement) {
     });
     const unscaled = new THREE.Box3().setFromObject(logoRoot);
     const dimensions = unscaled.getSize(new THREE.Vector3());
+    // 18 Nov 2026 (Ian: "it's going round, make it spin in one place"): centre the geometry on the group's own origin, so
+    // rotating the group turns the logo about its middle instead of orbiting the SVG's top-left corner.
+    const localCentre = unscaled.getCenter(new THREE.Vector3());
+    logoRoot.children.forEach((child) => (child as THREE.Mesh).geometry.translate(-localCentre.x, -localCentre.y, -localCentre.z));
     const scale = 4.75 / Math.max(dimensions.x, dimensions.y);
     logoRoot.scale.set(scale, -scale, scale);
-    const scaled = new THREE.Box3().setFromObject(logoRoot);
-    const centre = scaled.getCenter(new THREE.Vector3());
-    logoRoot.position.sub(centre);
-    logoBaseY = logoRoot.position.y;
+    logoRoot.position.set(0, 0, 0);
+    logoBaseY = 0;
     loaded = true;
     container.dataset.state = 'ready';
     renderer.domElement.style.opacity = '1';

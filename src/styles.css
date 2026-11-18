@@ -628,3 +628,12 @@ body.menu-is-open .site-header { transform: none !important; }
 .webgl-slot[data-state='ready'] .rc-stack { display: none; }
 @keyframes rc-swing { from { transform: rotateY(-38deg) rotateX(7deg); } to { transform: rotateY(38deg) rotateX(-5deg); } }
 @media (prefers-reduced-motion: reduce) { .webgl-slot .rc-stack { animation: none; transform: rotateY(-18deg); } }
+/* 18 Nov 2026 (Ian): the logo spins steadily in one place (the stack is centred on its own thickness), and the app screens
+   rest on the bottom edge of their section instead of floating above it. */
+.webgl-slot .rc-stack { animation: rc-spin 11s linear infinite; }
+@keyframes rc-spin { from { transform: rotateX(-5deg) rotateY(0deg); } to { transform: rotateX(-5deg) rotateY(360deg); } }
+@media (prefers-reduced-motion: reduce) { .webgl-slot .rc-stack { animation: none; transform: rotateY(-18deg); } }
+.home-app-section { padding-bottom: 0; }
+.home-app-section .home-app-grid { align-items: end; }
+.home-app-section .app-screens { align-self: end; margin-bottom: 0; }
+.home-app-section .app-screens figure, .home-app-section .app-screens figure:first-child, .home-app-section .app-screens figure:last-child { transform: none; margin-bottom: 0; }
