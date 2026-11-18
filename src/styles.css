@@ -583,3 +583,5 @@
     .motion-cursor { display: none; }
   }
 }
+/* Preserve the concurrent portal hotfix's stable header while the top-layer dialog owns the controls. */
+body.menu-is-open .site-header { transform: none !important; }
