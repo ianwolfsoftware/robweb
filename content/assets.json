@@ -2154,6 +2154,36 @@
       "bytes": 851742,
       "rights": "robin-own-youtube",
       "notes": "Alternative frame from Robin's official YouTube channel."
+    },
+    {
+      "id": "robweb-robin-portrait-4k",
+      "localPath": "assets/source/portraits/robin-portrait-4k.jpg",
+      "originalUrl": "ian-supplied:robin-portrait-4k.jpg",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Robin Clevett smiling at the camera",
+      "width": 3840,
+      "height": 3840,
+      "bytes": 1740176,
+      "rights": "robin-own-user-supplied",
+      "notes": "Portrait supplied directly by Ian for Robweb on 18 November 2026. Stored unchanged; SHA-256 87319aefce1935bbf8deedbedf6aa8f66aa00f0fa322db92775c4daa9ca3660a."
+    },
+    {
+      "id": "robweb-robin-portrait-cutout",
+      "localPath": "assets/source/portraits/robin-portrait-cutout.png",
+      "originalUrl": "derived:robweb-robin-portrait-4k",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Robin Clevett smiling at the camera",
+      "width": 1254,
+      "height": 1254,
+      "bytes": 1494046,
+      "rights": "derived-robin-asset",
+      "notes": "Background-extraction edit created with the built-in OpenAI image tool from Ian's supplied portrait; identity, expression, hair, pose, clothing and printed lettering were locked. Alpha edges were checked on light and dark fields. Responsive transparent AVIF/WebP derivatives at 480, 800 and 1200 px, plus the opaque 480 px low-power static composition, are in assets/optimised/portrait-robin. SHA-256 79f758812654a4c2e8870bfeac21c4ff9790bbb8ef616908391941da99459564."
     }
   ]
 }

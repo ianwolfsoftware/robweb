@@ -76,6 +76,12 @@ export function MotionPage({ path, children }: { path: string; children: ReactNo
   useEffect(() => {
     const root = ref.current;
     if (!root || reducedMotion()) return;
+    if (matchMedia('(max-width: 47.99rem)').matches) {
+      document.documentElement.classList.add('motion-compact');
+      const loader = document.querySelector<HTMLElement>('[data-motion-loader]');
+      if (loader) loader.dataset.motionLoader = 'done';
+      return () => { document.documentElement.classList.remove('motion-compact'); };
+    }
     document.documentElement.classList.add('motion-ready');
     const cleanups: Array<() => void> = [];
     let cancelled = false;
@@ -168,14 +174,28 @@ export function MotionPage({ path, children }: { path: string; children: ReactNo
         });
       });
 
-      const heroImage = root.querySelector('.hero-photo img');
-      if (heroImage) {
-        gsap.fromTo(heroImage, { scale: 1.035, yPercent: -1.5 }, {
-          scale: 1.09,
-          yPercent: 7,
-          ease: 'none',
+      const heroPortrait = root.querySelector<HTMLElement>('[data-hero-portrait]');
+      const heroLight = root.querySelector<HTMLElement>('[data-hero-light]');
+      const heroLogoScene = root.querySelector<HTMLElement>('.webgl-slot');
+      if (heroPortrait) {
+        const heroTimeline = gsap.timeline({
           scrollTrigger: { trigger: '.home-hero', start: 'top top', end: 'bottom top', scrub: .65 },
         });
+        heroTimeline.fromTo(heroPortrait, { scale: 1.015, yPercent: 0 }, {
+          scale: 1.085,
+          yPercent: 7,
+          ease: 'none',
+        }, 0);
+        if (heroLight) {
+          heroTimeline.fromTo(heroLight, { xPercent: -115, autoAlpha: .08 }, {
+            xPercent: 125,
+            autoAlpha: .72,
+            ease: 'none',
+          }, 0);
+        }
+        if (heroLogoScene) {
+          heroTimeline.fromTo(heroLogoScene, { yPercent: 0 }, { yPercent: -11, ease: 'none' }, 0);
+        }
       }
 
       const marquee = root.querySelector<HTMLElement>('[data-marquee-track]');
@@ -312,6 +332,7 @@ export function WebglSlot() {
         const battery = await hints.getBattery?.();
         if (battery && !battery.charging && battery.level <= .2) return 'low-battery';
       } catch { /* Battery status is optional. */ }
+      if (matchMedia('(max-width: 47.99rem)').matches) return 'compact-screen';
       const probe = document.createElement('canvas');
       if (!probe.getContext('webgl2') && !probe.getContext('webgl')) return 'no-webgl';
       return null;
@@ -343,5 +364,5 @@ export function WebglSlot() {
       }
     };
   }, []);
-  return <div ref={ref} className="webgl-slot" data-state="static" aria-hidden="true"><span>Optional WebGL · static fallback ready</span></div>;
+  return <div ref={ref} className="webgl-slot" data-state="static" aria-hidden="true"><img src="/brand/logo.svg" width="441" height="224" alt="" /><span>RC · dimensional mark</span></div>;
 }

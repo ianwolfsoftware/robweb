@@ -1,131 +1,148 @@
-const VERTEX = `
-  attribute vec2 position;
-  void main() { gl_Position = vec4(position, 0.0, 1.0); }
-`;
-
-const FRAGMENT = `
-  precision highp float;
-  uniform vec2 resolution;
-  uniform vec2 pointer;
-  uniform float time;
-
-  float line(float value, float width) {
-    return smoothstep(width, 0.0, abs(value));
-  }
-
-  void main() {
-    vec2 uv = gl_FragCoord.xy / resolution.xy;
-    vec2 p = (gl_FragCoord.xy * 2.0 - resolution.xy) / min(resolution.x, resolution.y);
-    float t = time * 0.18;
-    float drift = pointer.x * 0.11 + pointer.y * 0.05;
-
-    float ribbonA = p.y - sin(p.x * 1.25 + t) * 0.23 - 0.05 - drift;
-    float ribbonB = p.y - sin(p.x * 1.55 - t * 0.72 + 1.8) * 0.18 + 0.42 + drift * 0.5;
-    float ribbonC = p.y - sin(p.x * 0.9 + t * 0.55 + 4.2) * 0.15 - 0.55;
-
-    float a = line(ribbonA, 0.18) * (0.65 + line(ribbonA, 0.025));
-    float b = line(ribbonB, 0.12) * (0.48 + line(ribbonB, 0.018));
-    float c = line(ribbonC, 0.09) * 0.28;
-    float gridX = line(fract(uv.x * 20.0) - 0.5, 0.018);
-    float gridY = line(fract(uv.y * 12.0) - 0.5, 0.018);
-
-    vec3 amber = vec3(0.961, 0.651, 0.137);
-    vec3 steel = vec3(0.49, 0.56, 0.66);
-    vec3 colour = amber * a * 0.32 + amber * b * 0.2 + steel * c * 0.18;
-    colour += steel * (gridX + gridY) * 0.016;
-    float vignette = smoothstep(1.45, 0.18, length(p * vec2(0.72, 0.92)));
-    colour *= 0.42 + vignette * 0.68;
-    gl_FragColor = vec4(colour, clamp(a + b + c + (gridX + gridY) * 0.04, 0.0, 0.72));
-  }
-`;
-
-function shader(gl: WebGLRenderingContext, type: number, source: string) {
-  const compiled = gl.createShader(type);
-  if (!compiled) throw new Error('Unable to create WebGL shader');
-  gl.shaderSource(compiled, source);
-  gl.compileShader(compiled);
-  if (!gl.getShaderParameter(compiled, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(compiled) || 'WebGL shader failed');
-  return compiled;
-}
+import * as THREE from 'three';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
 
 export function mountWebglSlot(container: HTMLElement) {
-  const canvas = document.createElement('canvas');
-  const gl = canvas.getContext('webgl', { antialias: false, alpha: true, powerPreference: 'low-power' });
-  if (!gl) throw new Error('WebGL unavailable');
-  const program = gl.createProgram();
-  if (!program) throw new Error('Unable to create WebGL program');
-  const vertex = shader(gl, gl.VERTEX_SHADER, VERTEX);
-  const fragment = shader(gl, gl.FRAGMENT_SHADER, FRAGMENT);
-  gl.attachShader(program, vertex);
-  gl.attachShader(program, fragment);
-  gl.linkProgram(program);
-  if (!gl.getProgramParameter(program, gl.LINK_STATUS)) throw new Error(gl.getProgramInfoLog(program) || 'WebGL link failed');
-  gl.useProgram(program);
+  const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true, powerPreference: 'high-performance' });
+  const pixelRatio = Math.min(window.devicePixelRatio || 1, 2);
+  renderer.setPixelRatio(pixelRatio);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.18;
+  renderer.domElement.style.opacity = '0';
+  renderer.domElement.dataset.rcLogoCanvas = 'true';
+  container.dataset.dpr = String(pixelRatio);
+  container.append(renderer.domElement);
 
-  const points = gl.createBuffer();
-  gl.bindBuffer(gl.ARRAY_BUFFER, points);
-  gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW);
-  const position = gl.getAttribLocation(program, 'position');
-  gl.enableVertexAttribArray(position);
-  gl.vertexAttribPointer(position, 2, gl.FLOAT, false, 0, 0);
-  const resolution = gl.getUniformLocation(program, 'resolution');
-  const time = gl.getUniformLocation(program, 'time');
-  const pointer = gl.getUniformLocation(program, 'pointer');
+  const scene = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(28, 1, .1, 40);
+  camera.position.set(0, .05, 8.5);
 
-  container.replaceChildren(canvas);
-  container.dataset.state = 'ready';
-  let raf = 0;
+  const logoRoot = new THREE.Group();
+  logoRoot.rotation.set(-.08, -.38, -.045);
+  scene.add(logoRoot);
+
+  scene.add(new THREE.HemisphereLight(0xf5f7fa, 0x11151b, 2.2));
+  const key = new THREE.DirectionalLight(0xffffff, 5.5);
+  key.position.set(-3.4, 4.2, 6);
+  scene.add(key);
+  const rim = new THREE.PointLight(0xf5a623, 28, 16, 1.8);
+  rim.position.set(4, .4, 3.8);
+  scene.add(rim);
+  const steel = new THREE.PointLight(0x7c8da6, 18, 14, 2);
+  steel.position.set(-4, -2.5, 2.2);
+  scene.add(steel);
+
+  const material = new THREE.MeshPhysicalMaterial({
+    color: 0xd8dce1,
+    metalness: .88,
+    roughness: .24,
+    clearcoat: .72,
+    clearcoatRoughness: .2,
+    side: THREE.DoubleSide,
+  });
+
+  let disposed = false;
+  let loaded = false;
   let visible = true;
-  const pointerValue = { x: 0, y: 0 };
-  const targetPointer = { x: 0, y: 0 };
-  const started = performance.now();
+  let raf = 0;
+  let scrollProgress = 0;
+  let logoBaseY = 0;
+  const pointer = new THREE.Vector2();
+  const targetPointer = new THREE.Vector2();
+  const clock = new THREE.Clock();
 
   const size = () => {
-    const ratio = Math.min(devicePixelRatio || 1, 1.5);
-    const width = Math.max(1, Math.floor(container.clientWidth * ratio));
-    const height = Math.max(1, Math.floor(container.clientHeight * ratio));
-    if (canvas.width !== width || canvas.height !== height) {
-      canvas.width = width;
-      canvas.height = height;
-      gl.viewport(0, 0, width, height);
-    }
+    const width = Math.max(1, container.clientWidth);
+    const height = Math.max(1, container.clientHeight);
+    camera.aspect = width / height;
+    camera.updateProjectionMatrix();
+    renderer.setSize(width, height, false);
   };
-  const move = (event: PointerEvent) => {
-    targetPointer.x = (event.clientX / innerWidth - .5) * 2;
-    targetPointer.y = (event.clientY / innerHeight - .5) * 2;
-  };
-  const draw = (now: number) => {
+  const draw = () => {
     raf = 0;
     if (!visible || document.hidden) return;
-    size();
-    pointerValue.x += (targetPointer.x - pointerValue.x) * .035;
-    pointerValue.y += (targetPointer.y - pointerValue.y) * .035;
-    gl.uniform2f(resolution, canvas.width, canvas.height);
-    gl.uniform2f(pointer, pointerValue.x, pointerValue.y);
-    gl.uniform1f(time, (now - started) / 1000);
-    gl.clearColor(0, 0, 0, 0);
-    gl.clear(gl.COLOR_BUFFER_BIT);
-    gl.drawArrays(gl.TRIANGLES, 0, 3);
+    pointer.lerp(targetPointer, .035);
+    const elapsed = clock.getElapsedTime();
+    logoRoot.rotation.y = -.38 + pointer.x * .13 + scrollProgress * .46 + Math.sin(elapsed * .36) * .055;
+    logoRoot.rotation.x = -.08 + pointer.y * .075;
+    logoRoot.rotation.z = -.045 + Math.sin(elapsed * .28) * .014;
+    logoRoot.position.y = logoBaseY + Math.sin(elapsed * .48) * .035 - scrollProgress * .08;
+    rim.position.x = 4 - scrollProgress * 7.5;
+    renderer.render(scene, camera);
     raf = requestAnimationFrame(draw);
   };
-  const start = () => { if (!raf && visible && !document.hidden) raf = requestAnimationFrame(draw); };
+  const start = () => { if (!raf && loaded && visible && !document.hidden) raf = requestAnimationFrame(draw); };
   const stop = () => { if (raf) cancelAnimationFrame(raf); raf = 0; };
-  const visibility = () => { if (document.hidden) stop(); else start(); };
-  const observer = new IntersectionObserver(([entry]) => { visible = entry.isIntersecting; if (visible) start(); else stop(); }, { rootMargin: '100px' });
-  observer.observe(container);
-  addEventListener('pointermove', move, { passive: true });
-  document.addEventListener('visibilitychange', visibility);
-  start();
+
+  const onPointer = (event: PointerEvent) => {
+    targetPointer.set((event.clientX / innerWidth - .5) * 2, (event.clientY / innerHeight - .5) * -2);
+  };
+  const onScroll = () => {
+    scrollProgress = Math.min(1, Math.max(0, scrollY / Math.max(1, innerHeight * .9)));
+  };
+  const onVisibility = () => { if (document.hidden) stop(); else start(); };
+  const intersection = new IntersectionObserver(([entry]) => {
+    visible = Boolean(entry?.isIntersecting);
+    container.dataset.paused = visible ? 'false' : 'true';
+    if (visible) start(); else stop();
+  }, { rootMargin: '120px' });
+  const resize = new ResizeObserver(() => { size(); if (loaded && visible) renderer.render(scene, camera); });
+  intersection.observe(container);
+  resize.observe(container);
+  addEventListener('pointermove', onPointer, { passive: true });
+  addEventListener('scroll', onScroll, { passive: true });
+  document.addEventListener('visibilitychange', onVisibility);
+  size();
+  onScroll();
+
+  new SVGLoader().load('/brand/logo.svg', (data) => {
+    if (disposed) return;
+    data.paths.forEach((path) => {
+      SVGLoader.createShapes(path).forEach((shape) => {
+        const geometry = new THREE.ExtrudeGeometry(shape, {
+          depth: 8,
+          bevelEnabled: true,
+          bevelSegments: 3,
+          bevelSize: 1.1,
+          bevelThickness: 1.25,
+          curveSegments: 10,
+        });
+        geometry.computeVertexNormals();
+        logoRoot.add(new THREE.Mesh(geometry, material));
+      });
+    });
+    const unscaled = new THREE.Box3().setFromObject(logoRoot);
+    const dimensions = unscaled.getSize(new THREE.Vector3());
+    const scale = 4.75 / Math.max(dimensions.x, dimensions.y);
+    logoRoot.scale.set(scale, -scale, scale);
+    const scaled = new THREE.Box3().setFromObject(logoRoot);
+    const centre = scaled.getCenter(new THREE.Vector3());
+    logoRoot.position.sub(centre);
+    logoBaseY = logoRoot.position.y;
+    loaded = true;
+    container.dataset.state = 'ready';
+    renderer.domElement.style.opacity = '1';
+    [...container.children].forEach((child) => { if (child !== renderer.domElement) child.remove(); });
+    clock.start();
+    start();
+  }, undefined, () => {
+    if (disposed) return;
+    renderer.domElement.remove();
+    container.dataset.state = 'fallback';
+    container.dataset.webglReason = 'svg-load-error';
+  });
 
   return () => {
+    disposed = true;
     stop();
-    observer.disconnect();
-    removeEventListener('pointermove', move);
-    document.removeEventListener('visibilitychange', visibility);
-    gl.deleteBuffer(points);
-    gl.deleteShader(vertex);
-    gl.deleteShader(fragment);
-    gl.deleteProgram(program);
-    gl.getExtension('WEBGL_lose_context')?.loseContext();
+    intersection.disconnect();
+    resize.disconnect();
+    removeEventListener('pointermove', onPointer);
+    removeEventListener('scroll', onScroll);
+    document.removeEventListener('visibilitychange', onVisibility);
+    logoRoot.traverse((object) => { if (object instanceof THREE.Mesh) object.geometry.dispose(); });
+    material.dispose();
+    renderer.dispose();
+    renderer.forceContextLoss();
   };
 }

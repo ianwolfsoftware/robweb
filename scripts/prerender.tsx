@@ -11,13 +11,12 @@ const publicOrigin = (process.env.PUBLIC_ORIGIN || 'https://robweb.wolf.uk.com')
 for (const route of routes) {
   const markup = renderToString(<Site path={route.path} />);
   const heroPreloads = route.path === '/' ? `
-    <link rel="preload" as="image" href="/optimised/hero-robin/hero-robin-960.avif" imagesrcset="/optimised/hero-robin/hero-robin-640.avif 640w, /optimised/hero-robin/hero-robin-960.avif 960w" imagesizes="100vw" media="(max-width: 47.99rem)" fetchpriority="high" />
-    <link rel="preload" as="image" href="/optimised/hero-robin/hero-robin-1440.avif" imagesrcset="/optimised/hero-robin/hero-robin-1440.avif 1440w, /optimised/hero-robin/hero-robin-2560.avif 2560w" imagesizes="100vw" media="(min-width: 48rem)" fetchpriority="high" />` : '';
+    <link rel="preload" as="image" type="image/webp" href="/optimised/portrait-robin/robin-portrait-480-static.webp" media="(max-width: 47.99rem)" fetchpriority="high" />
+    <link rel="preload" as="image" type="image/webp" href="/optimised/portrait-robin/robin-portrait-1200.webp" imagesrcset="/optimised/portrait-robin/robin-portrait-800.webp 800w, /optimised/portrait-robin/robin-portrait-1200.webp 1200w" imagesizes="58vw" media="(min-width: 48rem)" fetchpriority="high" />` : '';
   const document = template
     .replace(/<title>.*?<\/title>/, `<title>${route.title}</title>`)
     .replace(/<meta name="description" content=".*?" \/>/, `<meta name="description" content="${route.description}" />`)
-    .replace('</title>', `</title>\n    <link rel="canonical" href="${publicOrigin}${route.path}" />`)
-    .replace('</head>', `${heroPreloads}\n  </head>`)
+    .replace('</title>', `</title>\n    <link rel="canonical" href="${publicOrigin}${route.path}" />${heroPreloads}`)
     .replace('<div id="root"></div>', `<div id="root">${markup}</div>`);
   const filename = route.path === '/'
     ? path.join(dist, 'index.html')

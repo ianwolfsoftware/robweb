@@ -81,6 +81,7 @@ try {
             const style = getComputedStyle(element);
             return Number(style.opacity) >= .99 && style.visibility === 'visible' && box.width > 0 && box.height > 0;
           }), { timeout: 4000 });
+          await page.waitForFunction(() => ['ready', 'fallback'].includes(document.querySelector('.webgl-slot')?.getAttribute('data-state')), { timeout: 6000 });
         }
         const summary = await page.evaluate(() => ({
           noindex: document.querySelector('meta[name="robots"]')?.getAttribute('content'),
@@ -93,8 +94,11 @@ try {
           favicon: document.querySelector('link[rel="icon"]')?.getAttribute('href'),
           touchIcon: document.querySelector('link[rel="apple-touch-icon"]')?.getAttribute('href'),
           socialImage: document.querySelector('meta[property="og:image"]')?.getAttribute('content'),
-          heroImage: (() => { const image = document.querySelector('.hero-photo img'); return image ? { currentSrc: image.currentSrc, naturalWidth: image.naturalWidth, fetchPriority: image.fetchPriority } : null; })(),
-          heroPreloads: document.querySelectorAll('link[rel="preload"][as="image"][href*="/hero-robin/"]').length,
+          heroImage: (() => { const image = document.querySelector('.hero-portrait img'); return image ? { currentSrc: image.currentSrc, naturalWidth: image.naturalWidth, fetchPriority: image.fetchPriority } : null; })(),
+          heroPreloads: document.querySelectorAll('link[rel="preload"][as="image"][href*="/portrait-robin/"]').length,
+          portraitSources: document.querySelectorAll('.hero-portrait source').length,
+          lightSweep: Boolean(document.querySelector('[data-hero-light]')),
+          logoScene: (() => { const scene = document.querySelector('.webgl-slot'); return scene ? { state: scene.getAttribute('data-state'), dpr: Number(scene.getAttribute('data-dpr')), canvas: Boolean(scene.querySelector('[data-rc-logo-canvas]')), paused: scene.getAttribute('data-paused') } : null; })(),
           heroParagraphs: document.querySelectorAll('.home-hero p').length,
           heroLinks: [...document.querySelectorAll('.home-hero nav a')].map((link) => link.getAttribute('href')),
           motionLoader: document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader'),
@@ -131,13 +135,19 @@ try {
           assert.deepEqual(summary.heroLinks, ['/shop/', '/app/'], 'home hero exposes only Products and App entry points');
           assert.equal(summary.heroControlsVisible, true, 'home hero logo, name and actions are visibly settled');
           assert.equal(summary.motionLoader, 'done', 'home branded loader completes before acceptance');
-          assert.equal(summary.lenisActive, true, 'home initialises the shared Lenis motion runtime');
-          assert.equal(summary.splitCharacters, 12, 'home wordmark is prepared for GSAP character staggers');
+          assert.equal(summary.lenisActive, viewportName === 'desktop', viewportName === 'mobile' ? 'compact home avoids the desktop smooth-scroll runtime' : 'desktop home initialises the shared Lenis motion runtime');
+          assert.equal(summary.splitCharacters, viewportName === 'desktop' ? 12 : 0, viewportName === 'mobile' ? 'compact home keeps the wordmark immediately visible without JS splitting' : 'desktop wordmark is prepared for GSAP character staggers');
           assert.equal(summary.marqueeGroups, 2, 'home provides two seamless direction-aware marquee groups');
           assert.equal(summary.heroPreloads, 2, 'home preloads the viewport-appropriate AVIF hero source');
+          assert.equal(summary.portraitSources, 4, 'home supplies compact and desktop AVIF/WebP portrait sources');
+          assert.equal(summary.lightSweep, true, 'home provides the scroll-scrubbed portrait light layer');
           assert.ok(summary.heroImage?.naturalWidth > 0, 'home hero image is decoded');
           assert.equal(summary.heroImage?.fetchPriority, 'high', 'home hero image has high fetch priority');
-          assert.match(summary.heroImage?.currentSrc || '', /hero-robin-(640|960|1440|2560)\.avif$/, 'home selects a responsive AVIF hero source');
+          assert.match(summary.heroImage?.currentSrc || '', /robin-portrait-(480-static|800|1200)\.webp$/, 'home selects a responsive portrait WebP source');
+          const expectedLogoScene = viewportName === 'mobile'
+            ? { state: 'fallback', dpr: 0, canvas: false, paused: null }
+            : { state: 'ready', dpr: Math.min(viewport.deviceScaleFactor, 2), canvas: true, paused: 'false' };
+          assert.deepEqual(summary.logoScene, expectedLogoScene, viewportName === 'mobile' ? 'compact screens keep the designed static RC fallback' : 'capable desktops render the real RC SVG through the capped Three.js scene');
         }
         if (route === '/shop/') {
           assert.equal(await page.$$eval('.product-card', (cards) => cards.length), 11, 'shop renders all 11 committed Shopify products');
@@ -209,15 +219,39 @@ try {
   await reduced.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
   await reduced.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await reduced.goto(baseUrl, { waitUntil: 'networkidle0' });
+  await reduced.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') === 'fallback');
   const reducedState = await reduced.$eval('.home-hero', (element) => ({
-    hero: element.querySelector('img')?.complete ? 'static-photo' : 'missing',
-    webgl: Boolean(element.querySelector('canvas, .webgl-slot')),
+    hero: element.querySelector('.hero-portrait img')?.complete ? 'static-portrait' : 'missing',
+    webglState: element.querySelector('.webgl-slot')?.getAttribute('data-state'),
+    webglReason: element.querySelector('.webgl-slot')?.getAttribute('data-webgl-reason'),
+    webglCanvas: Boolean(element.querySelector('.webgl-slot canvas')),
     smoothScroll: document.documentElement.classList.contains('lenis-active'),
     splitCharacters: element.querySelectorAll('.split-char').length,
     loaderDisplay: getComputedStyle(document.querySelector('.page-loader')).display,
+    lightSweepDisplay: getComputedStyle(element.querySelector('[data-hero-light]')).display,
   }));
-  assert.deepEqual(reducedState, { hero: 'static-photo', webgl: false, smoothScroll: false, splitCharacters: 0, loaderDisplay: 'none' }, 'reduced motion keeps static content and skips the loader, smooth scroll, text splitting and canvas layer');
+  assert.deepEqual(reducedState, { hero: 'static-portrait', webglState: 'fallback', webglReason: 'reduced-motion', webglCanvas: false, smoothScroll: false, splitCharacters: 0, loaderDisplay: 'none', lightSweepDisplay: 'none' }, 'reduced motion keeps static portrait/logo fallbacks and skips the loader, smooth scroll, text splitting, sweep and canvas layer');
   await reduced.close();
+
+  const lowPower = await browser.newPage();
+  await lowPower.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
+  await lowPower.evaluateOnNewDocument(() => { Object.defineProperty(navigator, 'deviceMemory', { configurable: true, get: () => 1 }); });
+  await lowPower.goto(baseUrl, { waitUntil: 'networkidle0' });
+  await lowPower.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') === 'fallback');
+  const lowPowerState = await lowPower.$eval('.webgl-slot', (element) => ({ state: element.getAttribute('data-state'), reason: element.getAttribute('data-webgl-reason'), canvas: Boolean(element.querySelector('canvas')), fallback: Boolean(element.querySelector('img')) }));
+  assert.deepEqual(lowPowerState, { state: 'fallback', reason: 'low-memory', canvas: false, fallback: true }, 'low-memory phones keep the static RC mark and never create a Three.js canvas');
+  await lowPower.close();
+
+  const scenePage = await browser.newPage();
+  await scenePage.setViewport({ width: 1440, height: 900, isMobile: false, deviceScaleFactor: 3 });
+  await scenePage.goto(baseUrl, { waitUntil: 'networkidle0' });
+  await scenePage.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') === 'ready');
+  assert.equal(await scenePage.$eval('.webgl-slot', (element) => element.getAttribute('data-dpr')), '2', 'Three.js renderer caps DPR at 2');
+  await scenePage.evaluate(() => scrollTo(0, document.documentElement.scrollHeight));
+  await scenePage.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-paused') === 'true');
+  const logoScene = await scenePage.$eval('.webgl-slot', (element) => ({ state: element.getAttribute('data-state'), dpr: element.getAttribute('data-dpr'), pausedOffscreen: element.getAttribute('data-paused') }));
+  assert.deepEqual(logoScene, { state: 'ready', dpr: '2', pausedOffscreen: 'true' }, 'Three.js RC scene pauses while the hero is off-screen');
+  await scenePage.close();
 
   const performancePage = await browser.newPage();
   await performancePage.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
@@ -247,7 +281,7 @@ try {
   await browser.close();
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
   assert.deepEqual([...externalRequests], [], `unexpected external requests: ${[...externalRequests].join(', ')}`);
-  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, permanentRedirects: redirects.length, results, reducedMotion: reducedState, performance, externalRequests: [] };
+  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, permanentRedirects: redirects.length, results, reducedMotion: reducedState, lowPower: lowPowerState, logoScene, performance, externalRequests: [] };
   if (evidenceDir) await writeFile(`${evidenceDir}/browser-evidence.json`, `${JSON.stringify(evidence, null, 2)}\n`);
   console.log(JSON.stringify({ ok: true, screenshots: results.length, routes: routes.length, reducedMotion: reducedState, performance, externalRequests: [] }));
 } finally {
