@@ -63,7 +63,7 @@ export function mountWebglSlot(container: HTMLElement) {
     if (!visible || document.hidden) return;
     pointer.lerp(targetPointer, .035);
     const elapsed = clock.getElapsedTime();
-    logoRoot.rotation.y = elapsed * .55; // 18 Nov 2026 (Ian): spin steadily in one place (~11 s a turn); the extrusion keeps it solid side-on
+    logoRoot.rotation.y = elapsed * .18; // 18 Nov 2026 (Ian): a much slower turn in one place (~35 s a revolution)
     logoRoot.rotation.x = -.08;
     logoRoot.rotation.z = 0;
     logoRoot.position.y = logoBaseY;
@@ -117,7 +117,7 @@ export function mountWebglSlot(container: HTMLElement) {
     // rotating the group turns the logo about its middle instead of orbiting the SVG's top-left corner.
     const localCentre = unscaled.getCenter(new THREE.Vector3());
     logoRoot.children.forEach((child) => (child as THREE.Mesh).geometry.translate(-localCentre.x, -localCentre.y, -localCentre.z));
-    const scale = 4.75 / Math.max(dimensions.x, dimensions.y);
+    const scale = 3.3 / Math.max(dimensions.x, dimensions.y); // 18 Nov 2026: leave room so the turning logo is never clipped by the canvas
     logoRoot.scale.set(scale, -scale, scale);
     logoRoot.position.set(0, 0, 0);
     logoBaseY = 0;
