@@ -14,6 +14,6 @@ case "${1:-start}" in
   logs) tail -n 50 "$LOG" ;;
   start)
     if running; then echo "already running"; exit 0; fi
-    screen -dmS "$NAME" bash -c "while true; do PORT=$PORT node serve.mjs >> $LOG 2>&1; echo restart >> $LOG; sleep 2; done"
+    screen -dmS "$NAME" bash -c "(while true; do REPOSITORY=memory GO_LIVE=false PUBLIC_ORIGIN=http://nodejs.tail190c9.ts.net:6980 node build-server/server/index.js >> $LOG.api 2>&1; sleep 2; done) & while true; do PORT=$PORT node serve-site.mjs >> $LOG 2>&1; echo restart >> $LOG; sleep 2; done"
     sleep 1; echo "started screen $NAME on port $PORT" ;;
 esac
