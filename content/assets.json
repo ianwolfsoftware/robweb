@@ -2190,7 +2190,9 @@
       "localPath": "assets/partners/stairbox.svg",
       "originalUrl": "https://www.stairbox.com/",
       "page": "https://robweb.wolf.uk.com/",
-      "usedOn": ["https://robweb.wolf.uk.com/"],
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
       "alt": "StairBox",
       "width": 338,
       "height": 96,
@@ -2203,13 +2205,75 @@
       "localPath": "assets/partners/tools-and-jigs.png",
       "originalUrl": "https://toolsandjigs.com/",
       "page": "https://robweb.wolf.uk.com/",
-      "usedOn": ["https://robweb.wolf.uk.com/"],
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
       "alt": "Tools & Jigs",
       "width": 540,
       "height": 546,
       "bytes": 34323,
       "rights": "robin-owned-official-brand-asset",
       "notes": "Official Tools & Jigs logo supplied in Ian's approved Robweb reference pack; SHA-256 209e8f65d74341e224877622939fa0ad5a02e4199497c47056baa8a739e49eee."
+    },
+    {
+      "id": "robweb-partner-hazardco",
+      "localPath": "assets/partners/hazardco.svg",
+      "originalUrl": "https://www.hazardco.com/app/themes/wp-bbt-theme//assets/images/hazardco-yellow.svg",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "HazardCo",
+      "width": 191,
+      "height": 36,
+      "bytes": 15297,
+      "rights": "official-partner-asset",
+      "notes": "Official HazardCo logo from the brand website header (18 Nov 2026, Ian asked for real partner logos); SHA-256 d3cdab2a377b86b2e14c0c67218d566dd53437336760be4784da840268fec2df."
+    },
+    {
+      "id": "robweb-partner-festool",
+      "localPath": "assets/partners/festool.svg",
+      "originalUrl": "https://assets.cdn.festool.io/festool-logo.min.svg",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Festool",
+      "width": 248,
+      "height": 32,
+      "bytes": 2584,
+      "rights": "official-partner-asset",
+      "notes": "Official Festool logo from the brand website header (18 Nov 2026, Ian asked for real partner logos); SHA-256 d82577ac0b90c19ccc9116b8870ce3b0b15e01c28fdffafb7a0c1bac496e6eea."
+    },
+    {
+      "id": "robweb-partner-hilti",
+      "localPath": "assets/partners/hilti.svg",
+      "originalUrl": "https://www.hilti.co.uk/static/ui/assets/images/hilti-logo.svg",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Hilti",
+      "width": 482,
+      "height": 113,
+      "bytes": 590,
+      "rights": "official-partner-asset",
+      "notes": "Official Hilti logo from the brand website header (18 Nov 2026, Ian asked for real partner logos); SHA-256 d1941afaedbe52497d62d08501806e3b2d9dbe32bf7ffaaa2a959614d292ec41."
+    },
+    {
+      "id": "robweb-partner-diamondback",
+      "localPath": "assets/partners/diamondback.png",
+      "originalUrl": "https://toolbelts.com/cdn/shop/files/Diamondback-logo-white-red_450x.png",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": [
+        "https://robweb.wolf.uk.com/"
+      ],
+      "alt": "Diamondback Toolbelts",
+      "width": 450,
+      "height": 96,
+      "bytes": 15274,
+      "rights": "official-partner-asset",
+      "notes": "Official Diamondback Toolbelts logo from the brand website header (18 Nov 2026, Ian asked for real partner logos); SHA-256 c1a7b294730508f7646585a052ed4eaca48a13e3f8492ca0e42b0af1203f6c64."
     }
   ]
 }

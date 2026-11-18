@@ -60,7 +60,7 @@ export const curatedPress: MediaFeedItem[] = [
 const partnerDate = '2026-11-18T00:00:00.000Z';
 export const seededPartners: PartnerRecord[] = [
   {
-    id: 'hazardco', name: 'HazardCo', url: 'https://www.hazardco.com/uk/', logoPath: null,
+    id: 'hazardco', name: 'HazardCo', url: 'https://www.hazardco.com/uk/', logoPath: '/partners/hazardco.svg',
     evidenceUrl: 'https://www.hazardco.com/uk/', position: 10, active: true, createdAt: partnerDate, updatedAt: partnerDate,
   },
   {
@@ -72,15 +72,15 @@ export const seededPartners: PartnerRecord[] = [
     evidenceUrl: 'https://toolsandjigs.com/', position: 30, active: true, createdAt: partnerDate, updatedAt: partnerDate,
   },
   {
-    id: 'festool', name: 'Festool', url: 'https://www.festool.co.uk/', logoPath: null,
+    id: 'festool', name: 'Festool', url: 'https://www.festool.co.uk/', logoPath: '/partners/festool.svg',
     evidenceUrl: 'https://www.fixradio.co.uk/listen/podcasts/the-carpentry-show/', position: 40, active: true, createdAt: partnerDate, updatedAt: partnerDate,
   },
   {
-    id: 'hilti', name: 'Hilti', url: 'https://www.hilti.co.uk/', logoPath: null,
+    id: 'hilti', name: 'Hilti', url: 'https://www.hilti.co.uk/', logoPath: '/partners/hilti.svg',
     evidenceUrl: 'https://www.linkedin.com/posts/robin-clevett-fioc-504a627_joinery-carpentry-building-activity-7438966391145172993-m5Lw', position: 50, active: true, createdAt: partnerDate, updatedAt: partnerDate,
   },
   {
-    id: 'diamondback', name: 'Diamondback Toolbelts', url: 'https://toolbelts.com/', logoPath: null,
+    id: 'diamondback', name: 'Diamondback Toolbelts', url: 'https://toolbelts.com/', logoPath: '/partners/diamondback.png',
     evidenceUrl: 'https://www.fixradio.co.uk/fix-feed/construction-news/post/diamondbacks-connor-crook-outlines-plans-for-product-expansion-in-carpentry-show-interview/', position: 60, active: true, createdAt: partnerDate, updatedAt: partnerDate,
   },
 ];

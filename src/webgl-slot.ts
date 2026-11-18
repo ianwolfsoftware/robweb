@@ -111,6 +111,8 @@ export function mountWebglSlot(container: HTMLElement) {
         logoRoot.add(new THREE.Mesh(geometry, material));
       });
     });
+    logoRoot.rotation.set(0, 0, 0); // measure the centre with no tilt, so the spin axis really passes through the middle
+    logoRoot.updateMatrixWorld(true);
     const unscaled = new THREE.Box3().setFromObject(logoRoot);
     const dimensions = unscaled.getSize(new THREE.Vector3());
     // 18 Nov 2026 (Ian: "it's going round, make it spin in one place"): centre the geometry on the group's own origin, so
