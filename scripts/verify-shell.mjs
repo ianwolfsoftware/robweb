@@ -123,11 +123,13 @@ try {
             const box = wordmark.getBoundingClientRect();
             return box.width <= 1 && box.height <= 1;
           })(),
-          mobilePortraitCard: innerWidth >= 672 || (() => {
+          mobilePortraitFullBleed: innerWidth >= 672 || (() => {
             const stage = document.querySelector('.hero-stage');
             if (!stage) return false;
             const box = stage.getBoundingClientRect();
-            return box.height > box.width * 1.5 && parseFloat(getComputedStyle(stage).borderRadius) > 0;
+            const style = getComputedStyle(stage);
+            return Math.abs(box.left) <= 1 && Math.abs(box.width - innerWidth) <= 1 && box.height > box.width
+              && parseFloat(style.borderRadius) === 0 && parseFloat(style.borderTopWidth) === 0;
           })(),
           mobileDock: innerWidth >= 672 || (() => {
             const dock = document.querySelector('.mobile-dock');
@@ -157,7 +159,7 @@ try {
           assert.equal(summary.heroControlsVisible, true, 'home hero portrait/brand and actions are visibly settled');
           assert.equal(summary.mobileHeaderHidden, true, 'phone home omits the redundant top bar');
           assert.equal(summary.mobileWordmarkHidden, true, 'phone home keeps Robin Clevett as its accessible H1 without duplicating the visible name');
-          assert.equal(summary.mobilePortraitCard, true, 'phone home uses a tall rounded portrait card');
+          assert.equal(summary.mobilePortraitFullBleed, true, 'phone home uses the approved full-bleed portrait stage');
           assert.equal(summary.mobileDock, true, 'phone home provides fixed logo and Menu controls in the thumb zone');
           assert.equal(summary.motionLoader, 'done', 'home branded loader completes before acceptance');
           assert.equal(summary.lenisActive, viewportName === 'desktop', viewportName === 'mobile' ? 'compact home avoids the desktop smooth-scroll runtime' : 'desktop home initialises the shared Lenis motion runtime');
