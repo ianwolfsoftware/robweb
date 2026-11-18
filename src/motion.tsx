@@ -47,18 +47,167 @@ function reducedMotion() {
   return matchMedia('(prefers-reduced-motion: reduce)').matches;
 }
 
+function compactMotionDisabled() {
+  const hints = navigator as NavigatorWithHints;
+  return Boolean(
+    hints.connection?.saveData
+    || (hints.deviceMemory && hints.deviceMemory <= 2)
+    || (hints.hardwareConcurrency && hints.hardwareConcurrency <= 2),
+  );
+}
+
+function mountCompactMotion(root: HTMLElement) {
+  const html = document.documentElement;
+  const loader = document.querySelector<HTMLElement>('[data-motion-loader]');
+  if (loader) loader.dataset.motionLoader = 'done';
+  html.classList.add('motion-compact');
+
+  if (compactMotionDisabled()) {
+    html.classList.add('motion-compact-static');
+    root.dataset.phoneMotion = 'static';
+    return () => {
+      delete root.dataset.phoneMotion;
+      html.classList.remove('motion-compact', 'motion-compact-static');
+    };
+  }
+
+  html.classList.add('motion-compact-ready');
+  root.dataset.phoneMotion = 'ready';
+  const cleanups: Array<() => void> = [];
+
+  const revealElements = [...root.querySelectorAll<HTMLElement>('[data-reveal]')];
+  const revealObserver = new IntersectionObserver((entries) => {
+    entries.forEach((entry) => {
+      if (!entry.isIntersecting) return;
+      const element = entry.target as HTMLElement;
+      element.dataset.phoneRevealState = 'done';
+      revealObserver.unobserve(element);
+    });
+  }, { rootMargin: '0px 0px -11% 0px', threshold: .08 });
+  revealElements.forEach((element, index) => {
+    element.style.setProperty('--phone-reveal-delay', `${(index % 4) * 55}ms`);
+    if (element.getBoundingClientRect().top < innerHeight * .88) element.dataset.phoneRevealState = 'done';
+    else {
+      element.dataset.phoneRevealState = 'watch';
+      revealObserver.observe(element);
+    }
+  });
+  cleanups.push(() => {
+    revealObserver.disconnect();
+    revealElements.forEach((element) => {
+      delete element.dataset.phoneRevealState;
+      element.style.removeProperty('--phone-reveal-delay');
+    });
+  });
+
+  const portrait = root.querySelector<HTMLElement>('[data-hero-portrait]');
+  const lightSweep = root.querySelector<HTMLElement>('[data-hero-light]');
+  const marquee = root.querySelector<HTMLElement>('[data-marquee-track]');
+  let previousScroll = scrollY;
+  let scrollDirection = -1;
+  let scrollFrame = 0;
+  const updateScrollMotion = () => {
+    scrollFrame = 0;
+    const nextScroll = scrollY;
+    const delta = nextScroll - previousScroll;
+    if (Math.abs(delta) > 1) scrollDirection = delta > 0 ? -1 : 1;
+    root.dataset.phoneScrollDirection = scrollDirection < 0 ? 'forward' : 'back';
+    previousScroll = nextScroll;
+    if (portrait) {
+      const progress = Math.min(1, Math.max(0, nextScroll / 650));
+      portrait.style.transform = `translate3d(0, ${(-16 * progress).toFixed(2)}px, 0) scale(${(1.035 + .045 * progress).toFixed(4)})`;
+      if (lightSweep) lightSweep.style.transform = `translate3d(${(-12 + 148 * progress).toFixed(2)}%, 0, 0) skewX(-13deg)`;
+    }
+  };
+  const queueScrollMotion = () => {
+    if (!scrollFrame) scrollFrame = requestAnimationFrame(updateScrollMotion);
+  };
+  updateScrollMotion();
+  addEventListener('scroll', queueScrollMotion, { passive: true });
+  cleanups.push(() => {
+    removeEventListener('scroll', queueScrollMotion);
+    if (scrollFrame) cancelAnimationFrame(scrollFrame);
+    portrait?.style.removeProperty('transform');
+    lightSweep?.style.removeProperty('transform');
+    delete root.dataset.phoneScrollDirection;
+  });
+
+  if (marquee) {
+    let marqueeFrame = 0;
+    let marqueeVisible = false;
+    let marqueeOffset = 0;
+    let marqueeVelocity = -22;
+    let previousTime = 0;
+    let halfWidth = marquee.scrollWidth / 2;
+    const animateMarquee = (time: number) => {
+      if (!marqueeVisible) return;
+      const elapsed = Math.min(32, previousTime ? time - previousTime : 16);
+      previousTime = time;
+      const targetVelocity = 22 * scrollDirection;
+      marqueeVelocity += (targetVelocity - marqueeVelocity) * Math.min(1, elapsed / 220);
+      marqueeOffset += marqueeVelocity * elapsed / 1000;
+      if (halfWidth > 0) {
+        while (marqueeOffset <= -halfWidth) marqueeOffset += halfWidth;
+        while (marqueeOffset > 0) marqueeOffset -= halfWidth;
+      }
+      marquee.style.transform = `translate3d(${marqueeOffset.toFixed(2)}px, 0, 0)`;
+      marqueeFrame = requestAnimationFrame(animateMarquee);
+    };
+    const startMarquee = () => {
+      if (marqueeFrame || !marqueeVisible || document.hidden) return;
+      previousTime = 0;
+      marqueeFrame = requestAnimationFrame(animateMarquee);
+    };
+    const stopMarquee = () => {
+      if (marqueeFrame) cancelAnimationFrame(marqueeFrame);
+      marqueeFrame = 0;
+    };
+    const marqueeObserver = new IntersectionObserver(([entry]) => {
+      marqueeVisible = Boolean(entry?.isIntersecting);
+      if (marqueeVisible) startMarquee();
+      else stopMarquee();
+    }, { rootMargin: '120px 0px' });
+    const onResize = () => { halfWidth = marquee.scrollWidth / 2; };
+    const onVisibility = () => { if (document.hidden) stopMarquee(); else startMarquee(); };
+    marqueeObserver.observe(marquee);
+    addEventListener('resize', onResize, { passive: true });
+    document.addEventListener('visibilitychange', onVisibility);
+    cleanups.push(() => {
+      marqueeObserver.disconnect();
+      stopMarquee();
+      removeEventListener('resize', onResize);
+      document.removeEventListener('visibilitychange', onVisibility);
+      marquee.style.removeProperty('transform');
+    });
+  }
+
+  return () => {
+    cleanups.reverse().forEach((cleanup) => cleanup());
+    delete root.dataset.phoneMotion;
+    html.classList.remove('motion-compact', 'motion-compact-ready');
+  };
+}
+
 export async function animateMenu(panel: HTMLElement) {
   if (reducedMotion()) return;
-  const { gsap } = await loadMotionRuntime();
-  const links = panel.querySelectorAll('.mobile-menu-link');
-  gsap.timeline({ defaults: { ease: timings.ease } })
-    .fromTo(panel, { autoAlpha: 0 }, { autoAlpha: 1, duration: timings.quick })
-    .fromTo(links, { autoAlpha: 0, y: 34 }, {
-      autoAlpha: 1,
-      y: 0,
-      duration: timings.normal,
-      stagger: timings.staggerContent,
-    }, '-=.1');
+  panel.style.opacity = '0';
+  panel.style.visibility = 'hidden';
+  try {
+    const { gsap } = await loadMotionRuntime();
+    if (!panel.isConnected) return;
+    const links = panel.querySelectorAll('.mobile-menu-link');
+    gsap.timeline({ defaults: { ease: timings.ease } })
+      .fromTo(panel, { autoAlpha: 0 }, { autoAlpha: 1, duration: timings.quick })
+      .fromTo(links, { autoAlpha: 0, y: 34 }, {
+        autoAlpha: 1,
+        y: 0,
+        duration: timings.normal,
+        stagger: timings.staggerContent,
+      }, '-=.1');
+  } catch {
+    panel.style.opacity = '1';
+    panel.style.visibility = 'visible';
+  }
 }
 
 export function MotionChrome() {
@@ -77,10 +226,7 @@ export function MotionPage({ path, children }: { path: string; children: ReactNo
     const root = ref.current;
     if (!root || reducedMotion()) return;
     if (matchMedia('(max-width: 47.99rem)').matches) {
-      document.documentElement.classList.add('motion-compact');
-      const loader = document.querySelector<HTMLElement>('[data-motion-loader]');
-      if (loader) loader.dataset.motionLoader = 'done';
-      return () => { document.documentElement.classList.remove('motion-compact'); };
+      return mountCompactMotion(root);
     }
     document.documentElement.classList.add('motion-ready');
     const cleanups: Array<() => void> = [];
