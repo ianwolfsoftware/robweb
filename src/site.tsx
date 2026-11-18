@@ -1,6 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import shopSnapshot from '../content/shop-products.json';
+import videoSnapshot from '../content/videos.json';
+import { curatedInterviews, curatedPress, mediaSources, seededPartners } from '../shared/media-content';
+import type { MediaFeedItem, MediaFeedSnapshot, PartnerRecord } from '../shared/types';
 import { navRoutes, normalisePath, productUrl, routeFor, shopUrl } from './content';
 import { AdminApp } from './admin';
 import { animateMenu, MotionChrome, MotionPage, WebglSlot } from './motion';
@@ -117,7 +120,7 @@ const socials = [
 
 function Footer() {
   return <footer className="site-footer"><div className="footer-gradient" aria-hidden="true" /><div className="page-frame footer-signoff"><div><a href="/" aria-label="Robin Clevett home"><BrandLogo footer /></a><p>Tools that earn their place. Site maths that stays close to the job.</p></div><div><p className="eyebrow">TWO USEFUL ROUTES</p><h2 data-split>Find the product. Make the calculation.</h2><div className="button-row"><a className="button" href="/shop/">Shop products <Arrow /></a><a className="button button-ghost" href="/app/">RC Calculators <Arrow /></a></div></div></div>
-    <div className="page-frame footer-grid footer-grid-simple"><nav aria-label="Main links"><b>Explore</b><a href="/">Home</a><a href="/shop/">Shop</a><a href="/app/">App</a><a href="/contact/">Contact</a><a href={shopUrl('/footer/')}>Tools &amp; Jigs ↗</a></nav><nav aria-label="Legal"><b>Legal</b><a href="/legal/privacy/">Privacy</a><a href="/legal/cookies/">Cookies</a><a href="/legal/terms/">Terms</a><a href="/legal/disclaimer/">Disclaimer</a></nav><div className="footer-socials"><b>Follow Robin</b><div>{socials.map(([label, href, icon]) => <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} title={label}><span aria-hidden="true">{icon}</span></a>)}</div></div><div className="footer-meta"><p>Noindex preview</p><p>Analytics stay off until you choose them.</p></div></div>
+    <div className="page-frame footer-grid footer-grid-simple"><nav aria-label="Main links"><b>Explore</b><a href="/">Home</a><a href="/media/">Media</a><a href="/shop/">Shop</a><a href="/app/">App</a><a href="/contact/">Contact</a><a href="/cladding/">Cladding enquiries</a><a href={shopUrl('/footer/')}>Tools &amp; Jigs ↗</a></nav><nav aria-label="Legal"><b>Legal</b><a href="/legal/privacy/">Privacy</a><a href="/legal/cookies/">Cookies</a><a href="/legal/terms/">Terms</a><a href="/legal/disclaimer/">Disclaimer</a></nav><div className="footer-socials"><b>Follow Robin</b><div>{socials.map(([label, href, icon]) => <a key={label} href={href} target="_blank" rel="noreferrer" aria-label={label} title={label}><span aria-hidden="true">{icon}</span></a>)}</div></div><div className="footer-meta"><p>Noindex preview</p><p>Analytics stay off until you choose them.</p></div></div>
   </footer>;
 }
 
@@ -137,6 +140,53 @@ function useProducts() {
     return () => { active = false; };
   }, []);
   return catalogue;
+}
+
+const fallbackMedia: MediaFeedSnapshot = {
+  fetchedAt: videoSnapshot.fetchedAt,
+  youtube: videoSnapshot.videos.map((video) => ({ key: video.id, kind: 'youtube', title: video.title, url: video.url, published: video.published, outlet: 'Robin Clevett · YouTube', thumbnailUrl: video.thumbnailUrl })),
+  episodes: [],
+  interviews: curatedInterviews,
+  press: curatedPress,
+  partners: seededPartners,
+  counts: { youtube: videoSnapshot.videos.length, episodes: 0 },
+  sources: { youtube: mediaSources.youtube, podcast: '', apple: mediaSources.apple, fixRadio: mediaSources.fixRadio },
+};
+
+function useMedia() {
+  const [media, setMedia] = useState<MediaFeedSnapshot>(fallbackMedia);
+  useEffect(() => {
+    let active = true;
+    void fetch('/api/media', { headers: { Accept: 'application/json' } }).then(async (response) => {
+      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return;
+      const next = await response.json() as MediaFeedSnapshot;
+      if (active && Array.isArray(next.youtube) && Array.isArray(next.partners)) setMedia({ ...next, youtube: next.youtube.length ? next.youtube : fallbackMedia.youtube });
+    }).catch(() => { /* committed, verified items are the offline fallback */ });
+    return () => { active = false; };
+  }, []);
+  return media;
+}
+
+function readableDate(value: string) {
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }).format(date);
+}
+
+function VideoCard({ item, play }: { item: MediaFeedItem; play: (item: MediaFeedItem) => void }) {
+  return <article className="media-card video-card" data-reveal><button type="button" className="video-poster" onClick={() => play(item)} aria-label={`Play ${item.title}`}><img src={item.thumbnailUrl} width="640" height="360" loading="lazy" alt="" /><span className="play-mark" aria-hidden="true">▶</span></button><div><p className="card-meta">{readableDate(item.published)}</p><h3>{item.title}</h3><button className="text-link" type="button" onClick={() => play(item)}>Watch without tracking <Arrow /></button></div></article>;
+}
+
+function EpisodeCard({ item }: { item: MediaFeedItem }) {
+  return <article className="media-card episode-card" data-reveal><p className="card-meta">{readableDate(item.published)}{item.duration ? ` · ${item.duration}` : ''}</p><h3>{item.title}</h3>{item.description && <p>{item.description}</p>}{item.audioUrl ? <audio controls preload="none" src={item.audioUrl}>Your browser cannot play this audio. <a href={item.url}>Open the episode</a>.</audio> : null}<a className="text-link" href={item.url} target="_blank" rel="noreferrer">Episode details <Arrow external /></a></article>;
+}
+
+function PartnerWall({ partners }: { partners: PartnerRecord[] }) {
+  return <div className="partner-wall" data-reveal-group>{partners.filter((partner) => partner.active).map((partner) => <a key={partner.id} href={partner.url} target="_blank" rel="noreferrer" aria-label={`${partner.name} website`}>{partner.logoPath ? <img src={partner.logoPath} width="220" height="90" loading="lazy" alt={partner.name} /> : <strong>{partner.name}</strong>}</a>)}</div>;
+}
+
+function MediaTeasers() {
+  const media = useMedia();
+  return <><section className="page-frame home-media-section"><div className="section-heading"><div><p className="eyebrow">WATCH</p><h2>On site, in detail.</h2></div><a className="text-link" href="/media/#watch">All videos <Arrow /></a></div><div className="media-grid home-media-grid">{media.youtube.slice(0, 2).map((item) => <article className="media-card video-card" key={item.key}><a className="video-poster" href="/media/#watch"><img src={item.thumbnailUrl} width="640" height="360" loading="lazy" alt="" /><span className="play-mark" aria-hidden="true">▶</span></a><div><p className="card-meta">{readableDate(item.published)}</p><h3>{item.title}</h3></div></article>)}</div><div className="section-heading listen-heading"><div><p className="eyebrow">LISTEN</p><h2>The Carpentry Show.</h2></div><a className="text-link" href="/media/#listen">Latest episodes <Arrow /></a></div><div className="listen-teaser"><div><p>Robin's own weekly Fix Radio show: trade conversation, techniques, tools and the realities of the job.</p><p className="card-meta">Mondays from 6pm · in partnership with Festool</p></div><div className="button-row"><a className="button" href="/media/#listen">Listen now <Arrow /></a><a className="button button-ghost" href={mediaSources.fixRadioLive} target="_blank" rel="noreferrer">Fix Radio live <Arrow external /></a></div></div></section><section className="partners-section"><div className="page-frame"><div className="section-heading"><div><p className="eyebrow">PARTNERS</p><h2>Brands Robin works with.</h2></div><p>Official destinations for current partners and featured brands.</p></div><PartnerWall partners={media.partners} /></div></section></>;
 }
 
 function shopifyImage(src: string, width: number) {
@@ -174,6 +224,7 @@ function Home() {
   const featured = featuredHandles.map((handle) => products.find((product) => product.handle === handle)).filter((product): product is ShopProduct => Boolean(product));
   return <><section className="home-hero"><div className="hero-frame"><div className="hero-stage" data-hero-stage><div className="hero-depth-field" aria-hidden="true" />{!phone && <WebglSlot />}<picture className="hero-portrait"><source media="(max-width: 47.99rem)" srcSet="/optimised/portrait-robin/robin-portrait-480-static.webp" type="image/webp" /><source media="(max-width: 47.99rem)" srcSet="/optimised/portrait-robin/robin-portrait-480-static.avif" type="image/avif" /><source srcSet="/optimised/portrait-robin/robin-portrait-800.webp 800w, /optimised/portrait-robin/robin-portrait-1200.webp 1200w" sizes="58vw" type="image/webp" /><source srcSet="/optimised/portrait-robin/robin-portrait-800.avif 800w, /optimised/portrait-robin/robin-portrait-1200.avif 1200w" sizes="58vw" type="image/avif" /><img data-hero-portrait src="/source/portraits/robin-portrait-cutout.png" alt="Robin Clevett smiling at the camera" width="1254" height="1254" fetchPriority="high" /></picture><div className="hero-light-sweep" data-hero-light aria-hidden="true" /></div>{phone && <WebglSlot />}</div><div className="mobile-hero-statement"><span aria-hidden="true">✦</span><p>Videos, Tools &amp; Jigs and RC Calculators.</p></div><div className="hero-scrim" aria-hidden="true" /><div className="page-frame hero-content"><div className="hero-copy"><div className="hero-logo hero-intro"><BrandLogo hero /></div><h1 className="hero-title" data-split="hero" aria-label="Robin Clevett"><span className="hero-line">R<em className="accent-letter">o</em>bin</span><span className="hero-line">Clevett</span></h1><nav className="button-row hero-intro" aria-label="Featured destinations"><a className="button" data-magnetic href="/shop/">Shop <Arrow /></a><a className="button button-ghost" href="/app/">RC Calculators <Arrow /></a></nav></div></div></section>
     <section className="name-marquee" aria-label="Robin Clevett"><div className="name-marquee-track" data-marquee-track><div className="name-marquee-group"><span>Robin Clevett</span><i className="marquee-spark">✦</i><span>Robin Clevett</span><i>✦</i></div><div className="name-marquee-group" aria-hidden="true"><span>Robin Clevett</span><i>✦</i><span>Robin Clevett</span><i>✦</i></div></div></section>
+    <MediaTeasers />
     <section className="page-frame product-section"><div className="section-heading products-heading" data-reveal><div><p className="eyebrow">FROM TOOLS &amp; JIGS</p><h2 data-split>Products made to get used.</h2></div><p>Current product details and prices from Robin's official Shopify catalogue. Checkout stays with Tools &amp; Jigs.</p></div><div className="product-grid product-grid-featured" data-reveal-group>{(featured.length ? featured : products.slice(0, 4)).map((product) => <ProductCard key={product.handle} product={product} placement="home" />)}</div><a className="button" data-reveal href="/shop/">See the whole shop <Arrow /></a></section>
     <section className="home-app-section"><div className="page-frame home-app-grid"><div data-reveal><p className="eyebrow">RC CALCULATORS</p><h2>The figures you need, kept close to the job.</h2><p>All calculators are included with a subscription. Work metric-first, organise calculations by project, and switch between a focused dark or light interface.</p><ul className="feature-ticks"><li>Monthly £24.99, VAT included</li><li>Yearly £254.99, VAT included</li><li>New calculators added regularly</li></ul><a className="button" href="/app/">See RC Calculators <Arrow /></a></div><AppScreens compact /></div></section>
     <section className="tools-callout"><div className="page-frame" data-reveal><p className="eyebrow">THE OFFICIAL SHOP</p><h2>Prefer to browse at source?</h2><p>Open the complete Tools &amp; Jigs store for current product detail, availability and checkout.</p><a className="button button-dark" href={shopUrl('/home/tools-and-jigs/')}>Visit Tools &amp; Jigs <Arrow external /></a></div></section>
@@ -186,19 +237,54 @@ function Shop() {
   return <><PageIntro eyebrow="SHOP" title="Products, straight from the source." index="02"><p>The product range is refreshed from Tools &amp; Jigs and safely falls back to the committed catalogue if Shopify is briefly unavailable. Prices and availability are shown in GBP as supplied.</p></PageIntro><section className="page-frame product-section"><div className="catalogue-status"><span aria-hidden="true" /><b>{sourceLabel}</b><p>{catalogue.products.length} products · buying and checkout stay on Tools &amp; Jigs</p></div><div className="product-grid">{catalogue.products.map((product) => <ProductCard key={product.handle} product={product} placement="shop" />)}</div></section><section className="tools-callout"><div className="page-frame"><p className="eyebrow">TOOLS &amp; JIGS</p><h2>Want the official storefront?</h2><p>Browse collections, full product detail and checkout directly with Robin's Shopify store.</p><a className="button button-dark" href={shopUrl('/shop/all/')}>Open Tools &amp; Jigs <Arrow external /></a></div></section></>;
 }
 
-function PublicForm() {
+function EnquiryForm({ type }: { type: 'contact' | 'media' | 'cladding' }) {
   const [state, setState] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle');
   const [reference, setReference] = useState('');
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault(); setState('sending'); const form = event.currentTarget; const data = new FormData(form); const payload = Object.fromEntries(data.entries());
-    try { const response = await fetch('/api/forms/contact', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, consent: data.get('consent') === 'on' }) }); if (!response.ok) throw new Error('submission failed'); const result = await response.json() as { reference: string }; setReference(result.reference); setState('sent'); form.reset(); } catch { setState('error'); }
+    try { const response = await fetch(`/api/forms/${type}`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...payload, consent: data.get('consent') === 'on' }) }); if (!response.ok) throw new Error('submission failed'); const result = await response.json() as { reference: string }; setReference(result.reference); setState('sent'); form.reset(); } catch { setState('error'); }
   };
-  if (state === 'sent') return <section className="form-receipt" role="status"><p className="eyebrow">MESSAGE RECEIVED</p><h2>Thank you.</h2><p>Your reference is <code>{reference}</code>. The message is in Robin's website inbox for review.</p></section>;
-  return <form className="public-form" onSubmit={submit} noValidate><div className="form-row"><label>Name<input name="name" autoComplete="name" maxLength={120} required /></label><label>Email<input name="email" type="email" autoComplete="email" maxLength={254} required /></label></div><div className="form-row"><label>Phone <span>(optional)</span><input name="phone" type="tel" autoComplete="tel" maxLength={40} /></label><label>Subject <span>(optional)</span><input name="subject" maxLength={160} /></label></div><label>Message<textarea name="message" rows={7} maxLength={4000} required /></label><label className="honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label><label className="check-field"><input name="consent" type="checkbox" required /><span>I understand this message will be stored so the enquiry can be handled. See the <a href="/legal/privacy/">privacy notice</a>.</span></label>{state === 'error' && <p className="form-error" role="alert">That did not send. Your message is still here—try again.</p>}<button className="button" type="submit" disabled={state === 'sending'}>{state === 'sending' ? 'Sending…' : 'Send enquiry'} <Arrow /></button></form>;
+  if (state === 'sent') return <section className="form-receipt" role="status"><p className="eyebrow">ENQUIRY RECEIVED</p><h2>Thank you.</h2><p>Your reference is <code>{reference}</code>. The enquiry is in Robin's protected website inbox for review.</p></section>;
+  return <form className="public-form" onSubmit={submit}>
+    {type === 'cladding' && <><div className="form-row"><label>Cladding profile or section reference<input name="claddingRef" maxLength={120} required /></label><label>Approximate square metres<input name="squareMetres" maxLength={80} inputMode="decimal" required /></label></div><div className="form-row"><label>Required lead time<input name="leadTime" maxLength={120} required /></label><label>UK delivery location<input name="ukLocation" autoComplete="postal-code" maxLength={180} required /></label></div></>}
+    <div className="form-row"><label>Name<input name="name" autoComplete="name" maxLength={120} required /></label><label>Email<input name="email" type="email" autoComplete="email" maxLength={254} required /></label></div>
+    <div className="form-row"><label>Phone {type !== 'cladding' && <span>(optional)</span>}<input name="phone" type="tel" autoComplete="tel" maxLength={40} required={type === 'cladding'} /></label>{type === 'contact' && <label>Subject <span>(optional)</span><input name="subject" maxLength={160} /></label>}{type === 'media' && <label>Organisation <span>(optional)</span><input name="organisation" autoComplete="organization" maxLength={160} /></label>}</div>
+    {type === 'media' && <><div className="form-row"><label>Enquiry type<select name="enquiryType" required defaultValue=""><option value="" disabled>Choose one…</option><option>Interview or podcast</option><option>Press or media</option><option>Speaking or event</option><option>Brand collaboration</option><option>Other</option></select></label><label>Deadline <span>(optional)</span><input name="deadline" maxLength={120} placeholder="For example, 12 December" /></label></div><label>Subject<input name="subject" maxLength={160} required /></label></>}
+    <label>{type === 'cladding' ? 'Anything else? (optional)' : 'Message'}<textarea name="message" rows={7} maxLength={4000} required={type !== 'cladding'} /></label>
+    <label className="honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" /></label><label className="check-field"><input name="consent" type="checkbox" required /><span>I understand this enquiry will be stored so it can be handled. See the <a href="/legal/privacy/">privacy notice</a>.</span></label>{state === 'error' && <p className="form-error" role="alert">That did not send. Your answers are still here—try again.</p>}<button className="button" type="submit" disabled={state === 'sending'}>{state === 'sending' ? 'Sending…' : 'Send enquiry'} <Arrow /></button>
+  </form>;
 }
 
 function Contact() {
-  return <><PageIntro eyebrow="CONTACT" title="Start with the right information." index="04"><p>Share only what is needed. Messages are rate-limited, honeypot-protected and kept in this project's own admin inbox.</p></PageIntro><section className="page-frame contact-form-layout"><aside data-reveal><p className="eyebrow">BEFORE YOU SEND</p><h2>Keep it useful.</h2><p>Describe the product, app question or collaboration clearly. Do not include passwords, payment details or sensitive documents.</p></aside><div data-reveal><PublicForm /></div></section></>;
+  return <><PageIntro eyebrow="CONTACT" title="Start with the right information." index="05"><p>Share only what is needed. Messages are rate-limited, honeypot-protected and kept in this project's own admin inbox.</p></PageIntro><section className="page-frame contact-form-layout"><aside data-reveal><p className="eyebrow">BEFORE YOU SEND</p><h2>Keep it useful.</h2><p>Describe the product, app question or collaboration clearly. Do not include passwords, payment details or sensitive documents.</p><p>Looking for Thermowood? Use the <a className="text-link" href="/cladding/">cladding enquiry form <Arrow /></a>.</p></aside><div data-reveal><EnquiryForm type="contact" /></div></section></>;
+}
+
+function MediaPage() {
+  const media = useMedia();
+  const [selected, setSelected] = useState<MediaFeedItem | null>(null);
+  useEffect(() => {
+    if (!selected) return;
+    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setSelected(null); };
+    document.body.style.overflow = 'hidden';
+    addEventListener('keydown', close);
+    return () => { document.body.style.overflow = ''; removeEventListener('keydown', close); };
+  }, [selected]);
+  return <><PageIntro eyebrow="MEDIA" title="Watch the work. Hear the conversation." index="02"><p>Practical YouTube films, Robin's own weekly Fix Radio show, and a verified selection of interviews and press.</p></PageIntro>
+    <section className="page-frame media-section" id="watch"><div className="section-heading"><div><p className="eyebrow">WATCH</p><h2>Latest from YouTube.</h2></div><a className="text-link" href="https://www.youtube.com/@robinclevettcarpenter" target="_blank" rel="noreferrer">Robin's channel <Arrow external /></a></div><p className="section-note">Choose a film to load it privately from YouTube's no-cookie domain.</p><div className="media-grid video-list">{media.youtube.slice(0, 9).map((item) => <VideoCard key={item.key} item={item} play={setSelected} />)}</div></section>
+    <section className="listen-section" id="listen"><div className="page-frame"><div className="listen-lead"><div><p className="eyebrow">LISTEN · ROBIN'S OWN RADIO SHOW</p><h2>The Carpentry Show on Fix Radio.</h2></div><div><p>Robin hosts a weekly conversation for carpenters and joiners, covering tools, techniques, business and life in the trade. The show is made in partnership with Festool.</p><p className="card-meta">Mondays 6pm · repeat 11pm · podcast from 4pm</p><div className="button-row"><a className="button" href={mediaSources.fixRadioLive} target="_blank" rel="noreferrer">Listen live <Arrow external /></a><a className="button button-ghost" href={mediaSources.apple} target="_blank" rel="noreferrer">Apple Podcasts <Arrow external /></a><a className="button button-ghost" href={mediaSources.spotify} target="_blank" rel="noreferrer">Spotify <Arrow external /></a></div></div></div><div className="episode-grid">{media.episodes.length ? media.episodes.slice(0, 6).map((item) => <EpisodeCard key={item.key} item={item} />) : <article className="media-card episode-card"><p className="eyebrow">LATEST EPISODES</p><h3>Open The Carpentry Show</h3><p>The live episode feed is refreshed hourly. If it is briefly unavailable here, every episode remains on Fix Radio.</p><a className="text-link" href={mediaSources.fixRadio} target="_blank" rel="noreferrer">Browse on Fix Radio <Arrow external /></a></article>}</div></div></section>
+    <section className="page-frame media-section"><div className="section-heading"><div><p className="eyebrow">GUEST PODCASTS &amp; INTERVIEWS</p><h2>Longer conversations.</h2></div></div><div className="editorial-grid">{media.interviews.map((item) => <article className="editorial-card" key={item.key} data-reveal><p className="card-meta">{item.outlet} · {readableDate(item.published)}</p><h3>{item.title}</h3>{item.description && <p>{item.description}</p>}<a className="text-link" href={item.url} target="_blank" rel="noreferrer">Listen or read <Arrow external /></a></article>)}</div></section>
+    <section className="page-frame media-section press-section"><div className="section-heading"><div><p className="eyebrow">PRESS · AS SEEN IN</p><h2>Selected coverage.</h2></div></div><div className="press-list">{media.press.map((item) => <a key={item.key} href={item.url} target="_blank" rel="noreferrer"><span>{item.outlet}</span><strong>{item.title}</strong><Arrow external /></a>)}</div></section>
+    <section className="page-frame contact-form-layout media-enquiry"><aside data-reveal><p className="eyebrow">MEDIA ENQUIRIES</p><h2>Make the brief clear.</h2><p>For interviews, press, speaking and relevant collaborations, include the outlet, format and deadline.</p></aside><div data-reveal><EnquiryForm type="media" /></div></section>
+    {selected && createPortal(<div className="video-modal" role="dialog" aria-modal="true" aria-labelledby="video-modal-title" onMouseDown={(event) => { if (event.target === event.currentTarget) setSelected(null); }}><div><button className="video-modal-close" type="button" onClick={() => setSelected(null)} aria-label="Close video">×</button><div className="video-frame"><iframe src={`https://www.youtube-nocookie.com/embed/${selected.key}?rel=0`} title={selected.title} allow="accelerometer; encrypted-media; gyroscope; picture-in-picture; web-share" allowFullScreen /></div><h2 id="video-modal-title">{selected.title}</h2><a className="text-link" href={selected.url} target="_blank" rel="noreferrer">Open on YouTube <Arrow external /></a></div></div>, document.body)}
+  </>;
+}
+
+function Cladding() {
+  return <><PageIntro eyebrow="THERMOWOOD CLADDING" title="Cladding enquiries." index="06"><p>If you would like a price for Thermowood Cladding at special YouTube Subscriber rates please fill in this initial form and one of our team will make contact with you and prepare a cost for your potential order.</p></PageIntro>
+    <section className="page-frame cladding-overview"><div data-reveal><p className="eyebrow">THE MATERIAL</p><h2>Stable, warm and ready to finish.</h2><p>Length of cladding available depends on current stock on the ground and are available from 2.4m to 5.4m in .3m increments.</p><p>Some of our standard sections and dimensions are shown here.</p><p>Thermowood is a modified timber cladding option offering consistency in colour (golden brown).</p><p>The growing in Finland, Thermowood starts life as standard (non-durable) redwood, however, through Thermal modification technology we are able to modify the timber cells and create a durable product.</p><p>During the heat-treating process the timber darkens, it becomes much more stable and the thermal insulation properties also improve.</p><p>Due to the low moisture content, Thermowood takes stains, oils and lacquers very well.</p><p>Other species Available.</p><p><strong>Only available for delivery in the United Kingdom.</strong></p></div><div className="cladding-images" data-reveal><img src="/source/landing/cladding1.jpg" width="960" height="720" loading="eager" alt="Thermowood cladding boards fitted to an exterior" /><img src="/source/landing/cladding2.png" width="960" height="720" loading="lazy" alt="Thermowood cladding profile and finish detail" /></div></section>
+    <section className="cladding-facts"><div className="page-frame"><article><span>01</span><h3>Lengths</h3><p>2.4m–5.4m, in 0.3m increments.</p></article><article><span>02</span><h3>Profiles</h3><p>A choice of standard sections and dimensions.</p></article><article><span>03</span><h3>Delivery</h3><p>UK delivery addresses only.</p></article></div></section>
+    <section className="page-frame contact-form-layout cladding-form"><aside data-reveal><p className="eyebrow">INITIAL ENQUIRY</p><h2>Tell us what you need.</h2><p>A profile or section reference, approximate area, lead time and delivery location are enough to start.</p></aside><div data-reveal><EnquiryForm type="cladding" /></div></section>
+  </>;
 }
 
 function AppPage({ path }: { path: string }) {
@@ -219,13 +305,15 @@ function Legal({ path }: { path: string }) {
 }
 
 function NotFound() {
-  return <section className="not-found"><div className="blueprint-grid" aria-hidden="true" /><div className="page-frame"><p className="eyebrow">404 · OFF THE LINE</p><h1>That page doesn't fit here.</h1><p>The address may have moved or been mistyped.</p><a className="button" href="/">Back to home <Arrow /></a><nav aria-label="Useful pages"><a href="/shop/">Shop</a><a href="/app/">App</a><a href="/contact/">Contact</a></nav></div></section>;
+  return <section className="not-found"><div className="blueprint-grid" aria-hidden="true" /><div className="page-frame"><p className="eyebrow">404 · OFF THE LINE</p><h1>That page doesn't fit here.</h1><p>The address may have moved or been mistyped.</p><a className="button" href="/">Back to home <Arrow /></a><nav aria-label="Useful pages"><a href="/media/">Media</a><a href="/shop/">Shop</a><a href="/app/">App</a><a href="/contact/">Contact</a></nav></div></section>;
 }
 
 function Page({ path }: { path: string }) {
   if (path === '/') return <Home />;
+  if (path === '/media/') return <MediaPage />;
   if (path === '/shop/') return <Shop />;
   if (path === '/contact/') return <Contact />;
+  if (path === '/cladding/') return <Cladding />;
   if (path === '/app/' || path.startsWith('/calculator-app/')) return <AppPage path={path} />;
   if (path.startsWith('/legal/')) return <Legal path={path} />;
   return <NotFound />;

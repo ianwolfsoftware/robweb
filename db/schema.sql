@@ -112,7 +112,7 @@ CREATE TABLE settings (
 
 CREATE TABLE form_submissions (
   id CHAR(36) NOT NULL,
-  type ENUM('contact','interest') NOT NULL,
+  type ENUM('contact','interest','media','cladding') NOT NULL,
   fields_json JSON NOT NULL,
   status ENUM('new','handled','spam') NOT NULL DEFAULT 'new',
   created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -122,6 +122,38 @@ CREATE TABLE form_submissions (
   KEY ix_form_submissions_inbox (status, created_at),
   CONSTRAINT fk_form_submissions_handler FOREIGN KEY (handled_by) REFERENCES users(id) ON DELETE SET NULL,
   CONSTRAINT ck_form_fields_object CHECK (JSON_TYPE(fields_json) = 'OBJECT')
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE content_controls (
+  item_kind ENUM('youtube','episode','interview','press','partner','product') NOT NULL,
+  item_key VARCHAR(255) NOT NULL,
+  hidden BOOLEAN NOT NULL DEFAULT FALSE,
+  pinned BOOLEAN NOT NULL DEFAULT FALSE,
+  position INT UNSIGNED NULL,
+  updated_by CHAR(36) NULL,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (item_kind, item_key),
+  KEY ix_content_controls_order (item_kind, pinned, position),
+  CONSTRAINT fk_content_controls_user FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE partners (
+  id VARCHAR(64) NOT NULL,
+  name VARCHAR(120) NOT NULL,
+  url VARCHAR(500) NOT NULL,
+  logo_path VARCHAR(255) NULL,
+  evidence_url VARCHAR(500) NOT NULL,
+  position INT UNSIGNED NOT NULL DEFAULT 0,
+  active BOOLEAN NOT NULL DEFAULT TRUE,
+  updated_by CHAR(36) NULL,
+  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (id),
+  KEY ix_partners_public (active, position),
+  CONSTRAINT fk_partners_user FOREIGN KEY (updated_by) REFERENCES users(id) ON DELETE SET NULL,
+  CONSTRAINT ck_partners_name CHECK (CHAR_LENGTH(TRIM(name)) > 0),
+  CONSTRAINT ck_partners_url CHECK (url LIKE 'https://%'),
+  CONSTRAINT ck_partners_evidence CHECK (evidence_url LIKE 'https://%')
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE analytics_daily (

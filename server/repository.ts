@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import type {
   AnalyticsInput,
   AnalyticsRow,
+  ContentControl,
+  ContentItemKind,
   DashboardSnapshot,
   FormStatus,
   FormSubmission,
@@ -10,12 +12,14 @@ import type {
   MediaRecord,
   OutboundRow,
   PageRecord,
+  PartnerRecord,
   PublicFormFields,
   SafeUser,
   SessionRecord,
   UserRecord,
   UserRole,
 } from '../shared/types.js';
+import { seededPartners } from '../shared/media-content.js';
 
 export interface Repository {
   createForm(type: FormType, fields: PublicFormFields): Promise<FormSubmission>;
@@ -38,6 +42,10 @@ export interface Repository {
   publishPage(id: string, actorId: string): Promise<PageRecord | null>;
   revertPage(id: string, actorId: string): Promise<PageRecord | null>;
   listMedia(): Promise<MediaRecord[]>;
+  listContentControls(): Promise<ContentControl[]>;
+  upsertContentControl(kind: ContentItemKind, key: string, values: Pick<ContentControl, 'hidden' | 'pinned' | 'position'>, actorId: string): Promise<ContentControl>;
+  listPartners(): Promise<PartnerRecord[]>;
+  savePartner(partner: Omit<PartnerRecord, 'createdAt' | 'updatedAt'>, actorId: string): Promise<PartnerRecord>;
   getSettings(): Promise<Record<string, string>>;
   setSetting(key: string, value: string): Promise<void>;
 }
@@ -68,6 +76,8 @@ export class InMemoryRepository implements Repository {
   }));
   revisions = new Map<string, PageRecord[]>();
   media: MediaRecord[] = [];
+  controls: ContentControl[] = [];
+  partners: PartnerRecord[] = structuredClone(seededPartners);
   settings = new Map<string, string>([['form_retention_days', '90']]);
 
   async createForm(type: FormType, fields: PublicFormFields) {
@@ -176,6 +186,21 @@ export class InMemoryRepository implements Repository {
     return page;
   }
   async listMedia() { return this.media; }
+  async listContentControls() { return this.controls; }
+  async upsertContentControl(kind: ContentItemKind, key: string, values: Pick<ContentControl, 'hidden' | 'pinned' | 'position'>, _actorId: string) {
+    const existing = this.controls.find((row) => row.kind === kind && row.key === key);
+    const row = { kind, key, ...values, updatedAt: new Date().toISOString() };
+    if (existing) Object.assign(existing, row); else this.controls.push(row);
+    return row;
+  }
+  async listPartners() { return [...this.partners].sort((a, b) => a.position - b.position); }
+  async savePartner(partner: Omit<PartnerRecord, 'createdAt' | 'updatedAt'>, _actorId: string) {
+    const existing = this.partners.find((row) => row.id === partner.id);
+    const now = new Date().toISOString();
+    const row = { ...partner, createdAt: existing?.createdAt ?? now, updatedAt: now };
+    if (existing) Object.assign(existing, row); else this.partners.push(row);
+    return row;
+  }
   async getSettings() { return Object.fromEntries(this.settings); }
   async setSetting(key: string, value: string) { this.settings.set(key, value); }
 

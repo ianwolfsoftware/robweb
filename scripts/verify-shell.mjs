@@ -8,7 +8,7 @@ const port = Number(process.env.ROBWEB_SHELL_PORT || 4173);
 const baseUrl = `http://127.0.0.1:${port}`;
 const evidenceDir = process.env.ROBWEB_EVIDENCE_DIR;
 const routes = [
-  ['home', '/'], ['shop', '/shop/'], ['app', '/app/'], ['contact', '/contact/'], ['privacy', '/legal/privacy/'],
+  ['home', '/'], ['media', '/media/'], ['shop', '/shop/'], ['app', '/app/'], ['contact', '/contact/'], ['cladding', '/cladding/'], ['privacy', '/legal/privacy/'],
   ['terms', '/legal/terms/'], ['disclaimer', '/legal/disclaimer/'], ['cookies', '/legal/cookies/'],
   ['calculator-app', '/calculator-app/'], ['calculator-privacy', '/calculator-app/privacy/'],
   ['calculator-terms', '/calculator-app/terms/'], ['404', '/404/'],
@@ -62,7 +62,7 @@ try {
       page.on('pageerror', (error) => errors.push(`${viewportName}/${theme}/${currentRoute}: ${error.message}`));
       page.on('request', (request) => {
         const url = new URL(request.url());
-        if (url.origin !== baseUrl && url.protocol !== 'data:' && url.origin !== 'https://cdn.shopify.com') externalRequests.add(url.origin);
+        if (url.origin !== baseUrl && url.protocol !== 'data:' && url.origin !== 'https://cdn.shopify.com' && !url.hostname.endsWith('.ytimg.com')) externalRequests.add(url.origin);
       });
 
       for (const [slug, route] of routes) {
@@ -175,6 +175,22 @@ try {
           assert.match(summary.heroImage?.currentSrc || '', /robin-portrait-(480-static|800|1200)\.webp$/, 'home selects a responsive portrait WebP source');
           const expectedLogoScene = { state: 'ready', dpr: Math.min(viewport.deviceScaleFactor, 2), canvas: true, paused: 'false' };
           assert.deepEqual(summary.logoScene, expectedLogoScene, 'capable screens render the real RC SVG through the capped Three.js scene');
+          assert.equal(await page.$$eval('.home-media-section .media-card', (cards) => cards.length), 2, 'home shows a short Watch rail');
+          assert.equal(await page.$$eval('.listen-teaser', (cards) => cards.length), 1, 'home shows a short Listen rail');
+          assert.equal(await page.$$eval('.partner-wall a', (partners) => partners.length), 6, 'home shows the six verified partners');
+        }
+        if (route === '/media/') {
+          assert.equal(await page.$$eval('.video-list .video-card', (cards) => cards.length), 9, 'media shows the latest nine committed YouTube items while offline');
+          assert.equal(await page.$$eval('iframe[src*="youtube"]', (frames) => frames.length), 0, 'YouTube is not contacted through an embed before consent-by-click');
+          assert.match(await page.$eval('#listen', (element) => element.textContent ?? ''), /The Carpentry Show on Fix Radio/, 'media identifies Robin’s own radio show');
+          assert.equal(await page.$$eval('.press-list a', (links) => links.length), 3, 'media shows only the three verified press items');
+          assert.equal(await page.$$eval('.media-enquiry form[action]', (forms) => forms.length), 0, 'media form submits through the same-origin protected API client');
+        }
+        if (route === '/cladding/') {
+          const requiredFields = ['claddingRef', 'squareMetres', 'leadTime', 'ukLocation', 'name', 'email', 'phone', 'consent'];
+          assert.equal(await page.$$eval('.cladding-form form [name]', (fields, names) => names.every((name) => fields.some((field) => field.getAttribute('name') === name)), requiredFields), true, 'cladding includes every required field from the approved brief');
+          assert.equal(await page.$$eval('.cladding-images img', (images) => images.length), 2, 'cladding shows both retained source images');
+          assert.match(await page.$eval('.page-hero', (element) => element.textContent ?? ''), /special YouTube Subscriber rates/, 'cladding retains the approved subscriber-rate introduction');
         }
         if (route === '/shop/') {
           assert.equal(await page.$$eval('.product-card', (cards) => cards.length), 11, 'shop renders all 11 committed Shopify products');
@@ -275,7 +291,7 @@ try {
           assert.equal(menuState.dialogOpen, true, 'the modal dialog makes background content inert while the menu is open');
           assert.equal(menuState.activeLabel, 'Close site navigation', 'focus moves into the menu');
           const links = await page.$$eval('.mobile-menu-panel nav a', (elements) => elements.map((element) => { const rect = element.getBoundingClientRect(); return { height: rect.height, text: element.textContent?.trim() }; }));
-          assert.equal(links.length, 4, 'phone menu exposes only Home, Shop, App and Contact');
+          assert.equal(links.length, 5, 'phone menu exposes only Home, Media, Shop, App and Contact');
           assert.ok(links.every((link) => link.height >= 44), 'all phone menu routes have large tap targets');
           if (index === 0) await page.keyboard.press('Escape');
           else if (index === 1) await page.$eval('.mobile-menu-close', (element) => element.click());
@@ -321,13 +337,15 @@ try {
     const response = await fetch(`${baseUrl}${route}`, { redirect: 'manual' });
     assert.equal(response.status, 301, `${route} is a permanent redirect`);
     assert.equal(response.headers.get('location'), redirectMap[route], `${route} uses the source-controlled redirect target`);
-    assert.ok(['/', '/shop/'].includes(response.headers.get('location')), `${route} redirects to Home or Shop`);
+    assert.ok(['/', '/shop/', '/cladding/'].includes(response.headers.get('location')), `${route} redirects to Home, Shop or Cladding`);
   }
   const missing = await fetch(`${baseUrl}/definitely-missing/`, { redirect: 'manual' });
   assert.equal(missing.status, 404, 'unknown paths return the real 404 status');
   const sitemap = await (await fetch(`${baseUrl}/sitemap.xml`)).text();
   assert.doesNotMatch(sitemap, /videos|projects|services|robin-recommends/, 'sitemap excludes retired routes');
   assert.match(sitemap, /<loc>https:\/\/robweb\.wolf\.uk\.com\/shop\/<\/loc>/, 'sitemap includes Shop');
+  assert.match(sitemap, /<loc>https:\/\/robweb\.wolf\.uk\.com\/media\/<\/loc>/, 'sitemap includes Media');
+  assert.match(sitemap, /<loc>https:\/\/robweb\.wolf\.uk\.com\/cladding\/<\/loc>/, 'sitemap includes Cladding');
 
   const reduced = await browser.newPage();
   await reduced.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });

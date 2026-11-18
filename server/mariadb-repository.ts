@@ -2,6 +2,8 @@ import { randomUUID } from 'node:crypto';
 import mysql, { type Pool, type ResultSetHeader, type RowDataPacket } from 'mysql2/promise';
 import type {
   AnalyticsInput,
+  ContentControl,
+  ContentItemKind,
   DashboardSnapshot,
   FormStatus,
   FormSubmission,
@@ -10,6 +12,7 @@ import type {
   MediaRecord,
   OutboundRow,
   PageRecord,
+  PartnerRecord,
   PublicFormFields,
   SafeUser,
   SessionRecord,
@@ -223,6 +226,40 @@ export class MariaDbRepository implements Repository {
   async listMedia() {
     const [rows] = await this.pool.query<Row[]>('SELECT * FROM media ORDER BY created_at DESC LIMIT 500');
     return rows.map((row): MediaRecord => ({ id: String(row.id), path: String(row.path), mimeType: row.mime_type as MediaRecord['mimeType'], bytes: Number(row.bytes), width: Number(row.width), height: Number(row.height), altText: String(row.alt_text), createdAt: iso(row.created_at) }));
+  }
+  async listContentControls() {
+    const [rows] = await this.pool.query<Row[]>('SELECT * FROM content_controls ORDER BY item_kind, position IS NULL, position, item_key');
+    return rows.map((row): ContentControl => ({
+      kind: row.item_kind as ContentItemKind, key: String(row.item_key), hidden: Boolean(row.hidden), pinned: Boolean(row.pinned),
+      position: row.position === null ? null : Number(row.position), updatedAt: iso(row.updated_at),
+    }));
+  }
+  async upsertContentControl(kind: ContentItemKind, key: string, values: Pick<ContentControl, 'hidden' | 'pinned' | 'position'>, actorId: string) {
+    await this.pool.execute(
+      `INSERT INTO content_controls (item_kind, item_key, hidden, pinned, position, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE hidden = VALUES(hidden), pinned = VALUES(pinned), position = VALUES(position), updated_by = VALUES(updated_by)`,
+      [kind, key, values.hidden, values.pinned, values.position, actorId],
+    );
+    return { kind, key, ...values, updatedAt: new Date().toISOString() };
+  }
+  async listPartners() {
+    const [rows] = await this.pool.query<Row[]>('SELECT * FROM partners ORDER BY position, name');
+    return rows.map((row): PartnerRecord => ({
+      id: String(row.id), name: String(row.name), url: String(row.url), logoPath: row.logo_path ? String(row.logo_path) : null,
+      evidenceUrl: String(row.evidence_url), position: Number(row.position), active: Boolean(row.active),
+      createdAt: iso(row.created_at), updatedAt: iso(row.updated_at),
+    }));
+  }
+  async savePartner(partner: Omit<PartnerRecord, 'createdAt' | 'updatedAt'>, actorId: string) {
+    await this.pool.execute(
+      `INSERT INTO partners (id, name, url, logo_path, evidence_url, position, active, updated_by)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?) ON DUPLICATE KEY UPDATE name = VALUES(name), url = VALUES(url), logo_path = VALUES(logo_path), evidence_url = VALUES(evidence_url), position = VALUES(position), active = VALUES(active), updated_by = VALUES(updated_by)`,
+      [partner.id, partner.name, partner.url, partner.logoPath, partner.evidenceUrl, partner.position, partner.active, actorId],
+    );
+    const rows = await this.listPartners();
+    const row = rows.find((item) => item.id === partner.id);
+    if (!row) throw new Error('Partner write did not return a row');
+    return row;
   }
   async getSettings() { const [rows] = await this.pool.query<Row[]>('SELECT setting_key, value_json FROM settings'); return Object.fromEntries(rows.map((row) => [String(row.setting_key), String(json<unknown>(row.value_json))])); }
   async setSetting(key: string, value: string) { await this.pool.execute('INSERT INTO settings (setting_key, value_json) VALUES (?, ?) ON DUPLICATE KEY UPDATE value_json = VALUES(value_json)', [key, JSON.stringify(value)]); }

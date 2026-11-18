@@ -15,7 +15,9 @@ The web build does not require the API to render its public headings, copy, link
 
 ## Public site
 
-`src/site.tsx` owns semantic route layouts; `src/content.ts` is the route/metadata registry. The public choice set is Home, Shop, App and Contact; legal pages, stable calculator-app URLs and the real 404 remain addressable. Removed editorial routes are retained as source records but `content/redirects.json` permanently redirects their old URLs to Home, Shop or Contact.
+`src/site.tsx` owns semantic route layouts; `src/content.ts` is the route/metadata registry. The public choice set is Home, Media, Shop, App and Contact; Cladding, legal pages, stable calculator-app URLs and the real 404 remain addressable. Removed editorial routes are retained as source records and `content/redirects.json` maps the old cladding landing URL to the new dedicated route.
+
+`MediaFeeds` fetches the official YouTube RSS and Apple lookup in parallel, follows only the returned HTTPS podcast feed, and caches the parsed results for one hour. The public response adds only explicitly verified editorial links and partners. YouTube thumbnails can load as images, but the privacy-enhanced player iframe is absent until click. Feed failure falls back to the committed YouTube snapshot and verified static links without blocking the route.
 
 The Shopify public feed is fetched only by the API. `ShopifyCatalogue` uses a polite user agent, six-second timeout, request de-duplication and a 15-minute memory cache, with optional read-only Storefront API fallback and `content/shop-products.json` as the key-free committed fallback. Cards use Shopify CDN images directly and every buy action uses `/go/shop?product=`, which records only aggregate source-path counts before redirecting to the canonical Tools & Jigs product URL with UTMs.
 
@@ -29,7 +31,7 @@ GA4 is not present in the initial document. `ConsentBanner` creates the Google s
 
 Analytics rows contain only UTC day, path, referrer hostname, device class and count. No repository method accepts an IP address, user agent, query string, form value or persistent visitor ID. Outbound rows contain day, source path, Tools and Jigs target and count.
 
-Form submission fields are validated and size-limited. The honeypot must be empty. SMTP is off unless explicitly configured; when enabled it sends only the form type/reference and directs an authorised user to the admin inbox.
+Form submission fields are validated and size-limited. The honeypot must be empty. Contact, media and cladding forms use the same styled component and submit to type-specific same-origin API endpoints. SMTP is off unless explicitly configured; when enabled it sends only the form type/reference and directs an authorised user to the admin inbox. Cladding mail uses `CLADDING_NOTIFY_EMAIL` and safely skips mail while that value remains empty; storage is unaffected.
 
 ## Authentication and authorisation
 
@@ -51,13 +53,13 @@ Tables:
 
 - `users`, `user_invitations`, `sessions`
 - `pages`, `sections`, `page_revisions`, `media`, `settings`
-- `form_submissions`
+- `form_submissions`, `content_controls`, `partners`
 - `analytics_daily`, `outbound_clicks`
 
 The DB user is scoped to `robweb.*`; no ROBC database name, connection, session or service is referenced.
 
 ## Testing and release boundary
 
-Vitest/Supertest covers form validation/honeypot/consent, password invitation/session/CSRF, analytics aggregation/no-IP shape, Shopify sanitisation/cache fallback, allow-listed product redirects and schema-file parsing. The browser check loads all 12 remaining pages at 390 × 844 and 1440 × 900 in both themes, verifies the reduced navigation/redirect/sitemap contract, all snapshot products, app pricing/screens, prerendered headings, noindex, keyboard focus, tap size, responsive overflow, reduced motion and no unsolicited external request.
+Vitest/Supertest covers all form types/honeypot/consent/storage, media feed parsing, content controls, partner storage, password invitation/session/CSRF, analytics aggregation/no-IP shape, Shopify sanitisation/cache fallback, allow-listed product redirects and schema-file parsing. The browser check loads all 14 remaining pages at 390 × 844 and 1440 × 900 in both themes, including Media and Cladding, and verifies the navigation/redirect/sitemap contract, partner wall, privacy-delayed YouTube embed, required form fields, snapshot products, app pricing/screens, prerendered headings, noindex, keyboard focus, tap size, responsive overflow and reduced motion.
 
 `serve.mjs` serves `dist/` when built and keeps `public/` as its pre-build fallback. Landing or deploying this candidate remains a separate reviewed action. This candidate adds no deployment, process restart, DNS/edge/TLS action or database mutation.

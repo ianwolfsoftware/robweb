@@ -2,7 +2,7 @@
   "source": "https://robc.co.uk",
   "fetchedAt": "2026-11-17T13:42:53Z",
   "downloadCapBytes": 157286400,
-  "downloadedBytes": 33798337,
+  "downloadedBytes": 33846497,
   "assets": [
     {
       "id": "robc-001",
@@ -2184,6 +2184,32 @@
       "bytes": 1494046,
       "rights": "derived-robin-asset",
       "notes": "Background-extraction edit created with the built-in OpenAI image tool from Ian's supplied portrait; identity, expression, hair, pose, clothing and printed lettering were locked. Alpha edges were checked on light and dark fields. Responsive transparent AVIF/WebP derivatives at 480, 800 and 1200 px, plus the opaque 480 px low-power static composition, are in assets/optimised/portrait-robin. SHA-256 79f758812654a4c2e8870bfeac21c4ff9790bbb8ef616908391941da99459564."
+    },
+    {
+      "id": "robweb-partner-stairbox",
+      "localPath": "assets/partners/stairbox.svg",
+      "originalUrl": "https://www.stairbox.com/",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": ["https://robweb.wolf.uk.com/"],
+      "alt": "StairBox",
+      "width": 338,
+      "height": 96,
+      "bytes": 13837,
+      "rights": "official-partner-asset",
+      "notes": "Official StairBox wordmark supplied in Ian's approved Robweb reference pack; SHA-256 bfb7e63108d2b6b60dceb7fbfbbfdcca09d4af4ece4dce93894d753f8bd0cfb7."
+    },
+    {
+      "id": "robweb-partner-tools-and-jigs",
+      "localPath": "assets/partners/tools-and-jigs.png",
+      "originalUrl": "https://toolsandjigs.com/",
+      "page": "https://robweb.wolf.uk.com/",
+      "usedOn": ["https://robweb.wolf.uk.com/"],
+      "alt": "Tools & Jigs",
+      "width": 540,
+      "height": 546,
+      "bytes": 34323,
+      "rights": "robin-owned-official-brand-asset",
+      "notes": "Official Tools & Jigs logo supplied in Ian's approved Robweb reference pack; SHA-256 209e8f65d74341e224877622939fa0ad5a02e4199497c47056baa8a739e49eee."
     }
   ]
 }
