@@ -773,3 +773,10 @@ body.menu-is-open .site-header { transform: none !important; }
 .home-media-section .media-card .text-link { color: #c7ccd4; font-size: .78rem; }
 .home-media-section .play-mark { width: 3.4rem; height: 3.4rem; color: #fff; background: rgb(255 255 255 / 18%); border: 1px solid rgb(255 255 255 / 35%); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 @media (min-width: 42rem) { .home-media-section .media-card { flex-basis: 24rem; } }
+/* 18 Nov 2026: Diamondback only publishes a white wordmark, so it shows as a mono silhouette on the light partner tiles. */
+/* 18 Nov 2026: logos that are light-on-colour need their own treatment on the mono partner wall.
+   Hilti is white letters in a red box, so keep it as a grey box with white letters in both themes.
+   Diamondback only ships a white wordmark: dark silhouette on light tiles, its own white on dark tiles. */
+.partner-wall img[src*="hilti"], .theme-dark .partner-wall img[src*="hilti"] { filter: grayscale(1) contrast(1.15); opacity: .9; }
+.partner-wall img[src*="diamondback"] { filter: brightness(0); opacity: .82; }
+.theme-dark .partner-wall img[src*="diamondback"] { filter: grayscale(1) brightness(1.4); opacity: 1; }
