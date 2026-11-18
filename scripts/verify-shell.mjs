@@ -319,7 +319,7 @@ try {
       if (viewportName === 'mobile') {
         await page.$eval('.mobile-dock-menu', (element) => element.click());
         await page.waitForSelector('.mobile-menu-panel');
-        await page.click('.mobile-menu-actions .theme-toggle');
+        await page.$eval('.mobile-menu-actions .theme-toggle', (element) => element.click());
       } else {
         await page.click('.theme-toggle');
       }
