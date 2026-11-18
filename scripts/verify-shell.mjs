@@ -323,6 +323,7 @@ try {
       } else {
         await page.click('.theme-toggle');
       }
+      await page.waitForFunction((previousClass) => document.querySelector('.site')?.className !== previousClass, {}, beforeTheme);
       const afterTheme = await page.$eval('.site', (element) => element.className);
       assert.notEqual(beforeTheme, afterTheme, 'theme control changes appearance');
       if (viewportName === 'mobile') {
