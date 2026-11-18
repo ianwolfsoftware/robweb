@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import shopSnapshot from '../content/shop-products.json';
 import { navRoutes, normalisePath, productUrl, routeFor, shopUrl } from './content';
 import { AdminApp } from './admin';
@@ -42,7 +43,7 @@ function Header({ path, theme, setTheme }: { path: string; theme: Theme; setThem
     return () => { cancelAnimationFrame(frame); document.removeEventListener('keydown', close); document.body.classList.remove('menu-is-open'); };
   }, [menuOpen]);
   return <header className="site-header"><div className="header-shell"><a className="brand" href="/" aria-label="Robin Clevett home"><BrandLogo /></a><div className="nav-pill"><nav className="desktop-nav" aria-label="Primary navigation">{navRoutes.map((route) => <a className={path === route.path ? 'active' : ''} aria-current={path === route.path ? 'page' : undefined} key={route.path} href={route.path}><span data-link-label>{route.navLabel}</span></a>)}</nav><ThemeControl theme={theme} setTheme={setTheme} /><a className="button button-small header-shop" data-magnetic href={shopUrl('/header/')}><span data-link-label>Tools &amp; Jigs</span> <Arrow external /></a><button className="menu-toggle" type="button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="mobile-menu" aria-label={menuOpen ? 'Close site navigation' : 'Open site navigation'}><span /><span /><span /></button></div></div>
-    {menuOpen && <div ref={menuRef} className="mobile-menu-panel" id="mobile-menu"><nav aria-label="Mobile navigation">{navRoutes.map((route, index) => <a className="mobile-menu-link" key={route.path} href={route.path} onClick={() => setMenuOpen(false)}><span>{String(index + 1).padStart(2, '0')}</span>{route.navLabel}<Arrow /></a>)}</nav><div className="mobile-menu-actions"><a className="button mobile-menu-link" href={shopUrl('/mobile-menu/')}>Tools &amp; Jigs <Arrow external /></a><p>Robin's products and the RC Calculators app, without the clutter.</p></div></div>}
+    {menuOpen && createPortal(<div ref={menuRef} className="mobile-menu-panel" id="mobile-menu"><nav aria-label="Mobile navigation">{navRoutes.map((route, index) => <a className="mobile-menu-link" key={route.path} href={route.path} onClick={() => setMenuOpen(false)}><span>{String(index + 1).padStart(2, '0')}</span>{route.navLabel}<Arrow /></a>)}</nav><div className="mobile-menu-actions"><a className="button mobile-menu-link" href={shopUrl('/mobile-menu/')}>Tools &amp; Jigs <Arrow external /></a><p>Robin's products and the RC Calculators app, without the clutter.</p></div></div>, document.body)}
   </header>;
 }
 

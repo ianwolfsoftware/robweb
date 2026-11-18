@@ -548,3 +548,7 @@
     .motion-cursor { display: none; }
   }
 }
+/* 18 Nov 2026: the mobile menu is portalled to <body>; keep the header (with its close button) in view and lock the page behind it. */
+body.menu-is-open { overflow: hidden; }
+body.menu-is-open .site-header { transform: none !important; }
+.mobile-menu-panel { z-index: 95; }
