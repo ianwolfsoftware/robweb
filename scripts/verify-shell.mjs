@@ -175,7 +175,7 @@ try {
           assert.match(summary.heroImage?.currentSrc || '', /robin-portrait-(480-static|800|1200)\.webp$/, 'home selects a responsive portrait WebP source');
           const expectedLogoScene = { state: 'ready', dpr: Math.min(viewport.deviceScaleFactor, 2), canvas: true, paused: 'false' };
           assert.deepEqual(summary.logoScene, expectedLogoScene, 'capable screens render the real RC SVG through the capped Three.js scene');
-          assert.equal(await page.$$eval('.home-media-section .media-card', (cards) => cards.length), 2, 'home shows a short Watch rail');
+          assert.equal(await page.$$eval('.home-media-section .media-card', (cards) => cards.length), 8, 'home shows the approved eight-card Watch slider');
           assert.equal(await page.$$eval('.listen-teaser', (cards) => cards.length), 1, 'home shows a short Listen rail');
           assert.equal(await page.$$eval('.partner-wall a', (partners) => partners.length), 6, 'home shows the six verified partners');
         }
