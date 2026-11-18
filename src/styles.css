@@ -599,3 +599,9 @@ body.menu-is-open .site-header { transform: none !important; }
 
 /* 18 Nov 2026 (Ian): the star + "Videos, Tools & Jigs and RC Calculators" line under the portrait is removed. */
 .mobile-hero-statement { display: none !important; }
+/* 18 Nov 2026 (Ian): a Shop button sits under the phone portrait where the star line was. */
+@media (max-width: 41.99rem) {
+  .hero-copy .button-row { display: flex; width: min(calc(100% - 2rem), 31rem); margin: 1.75rem auto 0; }
+  .hero-copy .button-row .button-ghost { display: none; }
+  .hero-copy .button-row .button { flex: 1; justify-content: center; min-height: 3.5rem; }
+}
