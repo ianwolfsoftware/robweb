@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useCallback, useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { createPortal } from 'react-dom';
 import shopSnapshot from '../content/shop-products.json';
 import { navRoutes, normalisePath, productUrl, routeFor, shopUrl } from './content';
 import { AdminApp } from './admin';
@@ -30,20 +31,82 @@ function ThemeControl({ theme, setTheme }: { theme: Theme; setTheme: (theme: The
   return <button className="theme-toggle" type="button" onClick={() => setTheme(next)} aria-label={label} title={label}><span className="theme-icon" aria-hidden="true">{theme === 'dark' ? '☼' : '◐'}</span></button>;
 }
 
-function Header({ path, theme, setTheme }: { path: string; theme: Theme; setTheme: (theme: Theme) => void }) {
-  const [menuOpen, setMenuOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
+function Header({ path, theme, setTheme, menuOpen, openMenu }: { path: string; theme: Theme; setTheme: (theme: Theme) => void; menuOpen: boolean; openMenu: () => void }) {
+  return <header className="site-header"><div className="header-shell"><a className="brand" href="/" aria-label="Robin Clevett home"><BrandLogo /></a><a className="mobile-header-name" href="/">Robin Clevett</a><span className="mobile-header-label">Carpentry · tools</span><div className="nav-pill"><nav className="desktop-nav" aria-label="Primary navigation">{navRoutes.map((route) => <a className={path === route.path ? 'active' : ''} aria-current={path === route.path ? 'page' : undefined} key={route.path} href={route.path}><span data-link-label>{route.navLabel}</span></a>)}</nav><ThemeControl theme={theme} setTheme={setTheme} /><a className="button button-small header-shop" data-magnetic href={shopUrl('/header/')}><span data-link-label>Tools &amp; Jigs</span> <Arrow external /></a><button className="menu-toggle header-menu-toggle" type="button" onClick={openMenu} aria-expanded={menuOpen} aria-controls="mobile-menu" aria-label="Open site navigation"><span /><span /><span /></button></div></div></header>;
+}
+
+function MobileDock({ menuOpen, openMenu }: { menuOpen: boolean; openMenu: () => void }) {
+  return <nav className="mobile-dock" aria-label="Quick navigation"><a className="mobile-dock-mark" href="/" aria-label="Robin Clevett home"><img src="/brand/logo.svg" width="441" height="224" alt="" /></a><button className="mobile-dock-menu" type="button" onClick={openMenu} aria-expanded={menuOpen} aria-controls="mobile-menu"><span className="menu-dots" aria-hidden="true"><i /><i /><i /></span>Menu</button></nav>;
+}
+
+function FullScreenMenu({ open, theme, setTheme, closeMenu, closeForNavigation }: { open: boolean; theme: Theme; setTheme: (theme: Theme) => void; closeMenu: () => void; closeForNavigation: (href: string) => void }) {
+  const menuRef = useRef<HTMLDialogElement>(null);
+  const closeRef = useRef<HTMLButtonElement>(null);
   useEffect(() => {
-    if (!menuOpen) return;
-    const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setMenuOpen(false); };
-    document.addEventListener('keydown', close);
+    if (!open) return;
+    const scrollY = window.scrollY;
+    const previousBodyStyles = {
+      overflow: document.body.style.overflow,
+    };
+    const previousDocumentStyles = {
+      overflow: document.documentElement.style.overflow,
+      overscrollBehavior: document.documentElement.style.overscrollBehavior,
+      scrollBehavior: document.documentElement.style.scrollBehavior,
+    };
+    const previousScrollRestoration = history.scrollRestoration;
+    history.scrollRestoration = 'manual';
     document.body.classList.add('menu-is-open');
-    const frame = requestAnimationFrame(() => { if (menuRef.current) void animateMenu(menuRef.current); });
-    return () => { cancelAnimationFrame(frame); document.removeEventListener('keydown', close); document.body.classList.remove('menu-is-open'); };
-  }, [menuOpen]);
-  return <header className="site-header"><div className="header-shell"><a className="brand" href="/" aria-label="Robin Clevett home"><BrandLogo /></a><div className="nav-pill"><nav className="desktop-nav" aria-label="Primary navigation">{navRoutes.map((route) => <a className={path === route.path ? 'active' : ''} aria-current={path === route.path ? 'page' : undefined} key={route.path} href={route.path}><span data-link-label>{route.navLabel}</span></a>)}</nav><ThemeControl theme={theme} setTheme={setTheme} /><a className="button button-small header-shop" data-magnetic href={shopUrl('/header/')}><span data-link-label>Tools &amp; Jigs</span> <Arrow external /></a><button className="menu-toggle" type="button" onClick={() => setMenuOpen((open) => !open)} aria-expanded={menuOpen} aria-controls="mobile-menu" aria-label={menuOpen ? 'Close site navigation' : 'Open site navigation'}><span /><span /><span /></button></div></div>
-    {menuOpen && <div ref={menuRef} className="mobile-menu-panel" id="mobile-menu"><nav aria-label="Mobile navigation">{navRoutes.map((route, index) => <a className="mobile-menu-link" key={route.path} href={route.path} onClick={() => setMenuOpen(false)}><span>{String(index + 1).padStart(2, '0')}</span>{route.navLabel}<Arrow /></a>)}</nav><div className="mobile-menu-actions"><a className="button mobile-menu-link" href={shopUrl('/mobile-menu/')}>Tools &amp; Jigs <Arrow external /></a><p>Robin's products and the RC Calculators app, without the clutter.</p></div></div>}
-  </header>;
+    document.body.style.overflow = 'hidden';
+    document.documentElement.style.overflow = 'hidden';
+    document.documentElement.style.overscrollBehavior = 'none';
+    document.documentElement.style.scrollBehavior = 'auto';
+    menuRef.current?.showModal();
+    const cancel = (event: Event) => { event.preventDefault(); closeMenu(); };
+    menuRef.current?.addEventListener('cancel', cancel);
+    const keydown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        closeMenu();
+        return;
+      }
+      if (event.key !== 'Tab' || !menuRef.current) return;
+      const focusable = [...menuRef.current.querySelectorAll<HTMLElement>('a[href], button:not([disabled])')];
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last = focusable.at(-1)!;
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first.focus(); }
+    };
+    document.addEventListener('keydown', keydown);
+    let focusFrame = 0;
+    const frame = requestAnimationFrame(() => {
+      if (menuRef.current) void animateMenu(menuRef.current).then(() => {
+        focusFrame = requestAnimationFrame(() => closeRef.current?.focus());
+      });
+    });
+    return () => {
+      cancelAnimationFrame(frame);
+      cancelAnimationFrame(focusFrame);
+      document.removeEventListener('keydown', keydown);
+      menuRef.current?.removeEventListener('cancel', cancel);
+      if (menuRef.current?.open) menuRef.current.close();
+      document.body.classList.remove('menu-is-open');
+      document.body.style.overflow = previousBodyStyles.overflow;
+      document.documentElement.style.overflow = previousDocumentStyles.overflow;
+      document.documentElement.style.overscrollBehavior = previousDocumentStyles.overscrollBehavior;
+      window.scrollTo(0, scrollY);
+      requestAnimationFrame(() => {
+        window.setTimeout(() => {
+          window.scrollTo(0, scrollY);
+          document.documentElement.style.scrollBehavior = previousDocumentStyles.scrollBehavior;
+          history.scrollRestoration = previousScrollRestoration;
+        }, 100);
+      });
+    };
+  }, [closeMenu, open]);
+  if (!open || typeof document === 'undefined') return null;
+  const shopHref = shopUrl('/mobile-menu/');
+  return createPortal(<dialog ref={menuRef} className="mobile-menu-panel" id="mobile-menu" aria-labelledby="mobile-menu-title"><div className="mobile-menu-top"><p>Robin Clevett</p><button ref={closeRef} className="mobile-menu-close" type="button" onClick={closeMenu} aria-label="Close site navigation"><span aria-hidden="true" /></button></div><div className="mobile-menu-body"><p className="mobile-menu-kicker">Explore</p><h2 id="mobile-menu-title">Where would you like to go?</h2><nav aria-label="Mobile navigation">{navRoutes.map((route, index) => <a className="mobile-menu-link" key={route.path} href={route.path} onClick={(event) => { event.preventDefault(); closeForNavigation(route.path); }}><span>{String(index + 1).padStart(2, '0')}</span>{route.navLabel}<Arrow /></a>)}</nav></div><div className="mobile-menu-actions"><a className="button mobile-menu-link" href={shopHref} onClick={(event) => { event.preventDefault(); closeForNavigation(shopHref); }}>Tools &amp; Jigs <Arrow external /></a><ThemeControl theme={theme} setTheme={setTheme} /><p>Products, practical videos and RC Calculators.</p></div></dialog>, document.body);
 }
 
 const socials = [
@@ -92,7 +155,7 @@ function AppScreens({ compact = false }: { compact?: boolean }) {
 function Home() {
   const { products } = useProducts();
   const featured = featuredHandles.map((handle) => products.find((product) => product.handle === handle)).filter((product): product is ShopProduct => Boolean(product));
-  return <><section className="home-hero"><div className="hero-stage" data-hero-stage><div className="hero-depth-field" aria-hidden="true" /><WebglSlot /><picture className="hero-portrait"><source media="(max-width: 47.99rem)" srcSet="/optimised/portrait-robin/robin-portrait-480-static.webp" type="image/webp" /><source media="(max-width: 47.99rem)" srcSet="/optimised/portrait-robin/robin-portrait-480-static.avif" type="image/avif" /><source srcSet="/optimised/portrait-robin/robin-portrait-800.webp 800w, /optimised/portrait-robin/robin-portrait-1200.webp 1200w" sizes="58vw" type="image/webp" /><source srcSet="/optimised/portrait-robin/robin-portrait-800.avif 800w, /optimised/portrait-robin/robin-portrait-1200.avif 1200w" sizes="58vw" type="image/avif" /><img data-hero-portrait src="/source/portraits/robin-portrait-cutout.png" alt="Robin Clevett smiling at the camera" width="1254" height="1254" fetchPriority="high" /></picture><div className="hero-light-sweep" data-hero-light aria-hidden="true" /></div><div className="hero-scrim" aria-hidden="true" /><div className="page-frame hero-content"><div className="hero-copy"><div className="hero-logo hero-intro"><BrandLogo hero /></div><h1 className="hero-title" data-split="hero" aria-label="Robin Clevett"><span className="hero-line">R<em className="accent-letter">o</em>bin</span><span className="hero-line">Clevett</span></h1><nav className="button-row hero-intro" aria-label="Featured destinations"><a className="button" data-magnetic href="/shop/">Products <Arrow /></a><a className="button button-ghost" href="/app/">RC Calculators <Arrow /></a></nav></div></div></section>
+  return <><section className="home-hero"><div className="hero-stage" data-hero-stage><div className="hero-depth-field" aria-hidden="true" /><WebglSlot /><picture className="hero-portrait"><source media="(max-width: 47.99rem)" srcSet="/optimised/portrait-robin/robin-portrait-480-static.webp" type="image/webp" /><source media="(max-width: 47.99rem)" srcSet="/optimised/portrait-robin/robin-portrait-480-static.avif" type="image/avif" /><source srcSet="/optimised/portrait-robin/robin-portrait-800.webp 800w, /optimised/portrait-robin/robin-portrait-1200.webp 1200w" sizes="58vw" type="image/webp" /><source srcSet="/optimised/portrait-robin/robin-portrait-800.avif 800w, /optimised/portrait-robin/robin-portrait-1200.avif 1200w" sizes="58vw" type="image/avif" /><img data-hero-portrait src="/source/portraits/robin-portrait-cutout.png" alt="Robin Clevett smiling at the camera" width="1254" height="1254" fetchPriority="high" /></picture><div className="hero-light-sweep" data-hero-light aria-hidden="true" /></div><div className="mobile-hero-statement"><span aria-hidden="true">✦</span><p>Videos, Tools &amp; Jigs and RC Calculators.</p></div><div className="hero-scrim" aria-hidden="true" /><div className="page-frame hero-content"><div className="hero-copy"><div className="hero-logo hero-intro"><BrandLogo hero /></div><h1 className="hero-title" data-split="hero" aria-label="Robin Clevett"><span className="hero-line">R<em className="accent-letter">o</em>bin</span><span className="hero-line">Clevett</span></h1><nav className="button-row hero-intro" aria-label="Featured destinations"><a className="button" data-magnetic href="/shop/">Products <Arrow /></a><a className="button button-ghost" href="/app/">RC Calculators <Arrow /></a></nav></div></div></section>
     <section className="name-marquee" aria-label="Robin Clevett"><div className="name-marquee-track" data-marquee-track><div className="name-marquee-group"><span>Robin Clevett</span><i className="marquee-spark">✦</i><span>Robin Clevett</span><i>✦</i></div><div className="name-marquee-group" aria-hidden="true"><span>Robin Clevett</span><i>✦</i><span>Robin Clevett</span><i>✦</i></div></div></section>
     <section className="page-frame product-section" data-reveal><div className="section-heading products-heading"><div><p className="eyebrow">FROM TOOLS &amp; JIGS</p><h2 data-split>Products made to get used.</h2></div><p>Current product details and prices from Robin's official Shopify catalogue. Checkout stays with Tools &amp; Jigs.</p></div><div className="product-grid product-grid-featured" data-reveal-group>{(featured.length ? featured : products.slice(0, 4)).map((product) => <ProductCard key={product.handle} product={product} placement="home" />)}</div><a className="button" href="/shop/">See the whole shop <Arrow /></a></section>
     <section className="home-app-section"><div className="page-frame home-app-grid"><div data-reveal><p className="eyebrow">RC CALCULATORS</p><h2>The figures you need, kept close to the job.</h2><p>All calculators are included with a subscription. Work metric-first, organise calculations by project, and switch between a focused dark or light interface.</p><ul className="feature-ticks"><li>Monthly £24.99, VAT included</li><li>Yearly £254.99, VAT included</li><li>New calculators added regularly</li></ul><a className="button" href="/app/">See RC Calculators <Arrow /></a></div><AppScreens compact /></div></section>
@@ -154,8 +217,34 @@ function Page({ path }: { path: string }) {
 export function Site({ path }: SiteProps) {
   if (path.startsWith('/admin')) return <AdminApp path={path} />;
   const [theme, setThemeState] = useState<Theme>('dark');
+  const [menuOpen, setMenuOpen] = useState(false);
   useEffect(() => { const saved = localStorage.getItem('robweb-theme'); if (saved === 'light' || saved === 'dark') setThemeState(saved); }, []);
   const setTheme = (next: Theme) => { localStorage.setItem('robweb-theme', next); setThemeState(next); };
+  const openMenu = useCallback(() => {
+    if (menuOpen) return;
+    const state = history.state && typeof history.state === 'object' ? history.state : {};
+    history.pushState({ ...state, robwebMenuOpen: true }, '');
+    setMenuOpen(true);
+  }, [menuOpen]);
+  const closeMenu = useCallback(() => {
+    if (history.state?.robwebMenuOpen) history.back();
+    else setMenuOpen(false);
+  }, []);
+  const closeForNavigation = useCallback((href: string) => {
+    if (history.state?.robwebMenuOpen) {
+      const state = { ...history.state } as Record<string, unknown>;
+      delete state.robwebMenuOpen;
+      history.replaceState(state, '');
+    }
+    setMenuOpen(false);
+    location.assign(href);
+  }, []);
+  useEffect(() => {
+    if (!menuOpen) return;
+    const closeOnBack = () => setMenuOpen(false);
+    addEventListener('popstate', closeOnBack);
+    return () => removeEventListener('popstate', closeOnBack);
+  }, [menuOpen]);
   const page = routeFor(path); const activePath = normalisePath(path);
-  return <div className={`site theme-${theme}`}><MotionChrome /><a className="skip-link" href="#content">Skip to content</a><Header path={activePath} theme={theme} setTheme={setTheme} /><main id="content" tabIndex={-1}><MotionPage path={activePath}><Page path={activePath} /></MotionPage></main><Footer /><ConsentBanner />{!page && <span className="sr-only">Page not found</span>}</div>;
+  return <><div className={`site theme-${theme}`}><MotionChrome /><a className="skip-link" href="#content">Skip to content</a><Header path={activePath} theme={theme} setTheme={setTheme} menuOpen={menuOpen} openMenu={openMenu} /><main id="content" tabIndex={-1}><MotionPage path={activePath}><Page path={activePath} /></MotionPage></main><Footer /><ConsentBanner /><MobileDock menuOpen={menuOpen} openMenu={openMenu} />{!page && <span className="sr-only">Page not found</span>}</div><FullScreenMenu open={menuOpen} theme={theme} setTheme={setTheme} closeMenu={closeMenu} closeForNavigation={closeForNavigation} /></>;
 }

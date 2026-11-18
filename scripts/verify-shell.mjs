@@ -16,7 +16,7 @@ const routes = [
 const redirectMap = JSON.parse(await readFile(new URL('../content/redirects.json', import.meta.url), 'utf8'));
 const redirects = Object.keys(redirectMap);
 const viewports = [
-  ['mobile', { width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 }],
+  ['mobile', { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 1 }],
   ['desktop', { width: 1440, height: 900, isMobile: false, deviceScaleFactor: 1 }],
 ];
 const themes = ['dark', 'light'];
@@ -74,7 +74,7 @@ try {
         await new Promise((resolve) => setTimeout(resolve, 120));
         if (route === '/') {
           await page.waitForFunction(() => document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader') === 'done', { timeout: 4000 });
-          await page.waitForFunction(() => ['.hero-logo', '.hero-title', '.home-hero .button-row'].every((selector) => {
+          await page.waitForFunction(() => (innerWidth < 672 ? ['.hero-stage', '.mobile-hero-statement', '.hero-title'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
             const element = document.querySelector(selector);
             if (!element) return false;
             const box = element.getBoundingClientRect();
@@ -99,19 +99,33 @@ try {
           portraitSources: document.querySelectorAll('.hero-portrait source').length,
           lightSweep: Boolean(document.querySelector('[data-hero-light]')),
           logoScene: (() => { const scene = document.querySelector('.webgl-slot'); return scene ? { state: scene.getAttribute('data-state'), dpr: Number(scene.getAttribute('data-dpr')), canvas: Boolean(scene.querySelector('[data-rc-logo-canvas]')), paused: scene.getAttribute('data-paused') } : null; })(),
-          heroParagraphs: document.querySelectorAll('.home-hero p').length,
+          heroParagraphs: document.querySelectorAll('.hero-copy p').length,
           heroLinks: [...document.querySelectorAll('.home-hero nav a')].map((link) => link.getAttribute('href')),
           motionLoader: document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader'),
           lenisActive: document.documentElement.classList.contains('lenis-active'),
           splitCharacters: document.querySelectorAll('.hero-title .split-char').length,
           marqueeGroups: document.querySelectorAll('.name-marquee-group').length,
-          heroControlsVisible: ['.hero-logo', '.hero-title', '.home-hero .button-row'].every((selector) => {
+          heroControlsVisible: (innerWidth < 672 ? ['.hero-stage', '.mobile-hero-statement', '.hero-title'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
             const element = document.querySelector(selector);
             if (!element) return false;
             const box = element.getBoundingClientRect();
             const style = getComputedStyle(element);
             return Number(style.opacity) >= .99 && style.visibility === 'visible' && box.width > 0 && box.height > 0;
           }),
+          mobileTopLine: innerWidth >= 672 || ['.mobile-header-name', '.mobile-header-label'].every((selector) => {
+            const element = document.querySelector(selector);
+            return element && getComputedStyle(element).display !== 'none' && element.getBoundingClientRect().height > 0;
+          }),
+          mobilePortraitCard: innerWidth >= 672 || (() => {
+            const stage = document.querySelector('.hero-stage');
+            if (!stage) return false;
+            const box = stage.getBoundingClientRect();
+            return box.height > box.width * 1.5 && parseFloat(getComputedStyle(stage).borderRadius) > 0;
+          })(),
+          mobileDock: innerWidth >= 672 || (() => {
+            const dock = document.querySelector('.mobile-dock');
+            return Boolean(dock && getComputedStyle(dock).position === 'fixed' && dock.querySelector('.mobile-dock-mark') && dock.querySelector('.mobile-dock-menu'));
+          })(),
           emptyBands: [...document.querySelectorAll('main section')].filter((section) => {
             const box = section.getBoundingClientRect();
             const meaningful = section.textContent?.trim() || section.querySelector('img, canvas, form');
@@ -134,6 +148,9 @@ try {
           assert.equal(summary.heroParagraphs, 0, 'home hero contains no tagline or marketing copy');
           assert.deepEqual(summary.heroLinks, ['/shop/', '/app/'], 'home hero exposes only Products and App entry points');
           assert.equal(summary.heroControlsVisible, true, 'home hero logo, name and actions are visibly settled');
+          assert.equal(summary.mobileTopLine, true, 'phone home uses the minimal Robin/name top line');
+          assert.equal(summary.mobilePortraitCard, true, 'phone home uses a tall rounded portrait card');
+          assert.equal(summary.mobileDock, true, 'phone home provides fixed logo and Menu controls in the thumb zone');
           assert.equal(summary.motionLoader, 'done', 'home branded loader completes before acceptance');
           assert.equal(summary.lenisActive, viewportName === 'desktop', viewportName === 'mobile' ? 'compact home avoids the desktop smooth-scroll runtime' : 'desktop home initialises the shared Lenis motion runtime');
           assert.equal(summary.splitCharacters, viewportName === 'desktop' ? 12 : 0, viewportName === 'mobile' ? 'compact home keeps the wordmark immediately visible without JS splitting' : 'desktop wordmark is prepared for GSAP character staggers');
@@ -183,22 +200,81 @@ try {
       assert.equal(await page.evaluate(() => document.activeElement?.className), 'skip-link', 'first keyboard target is skip link');
       assert.equal(await page.$eval('.skip-link', (element) => getComputedStyle(element).opacity), '1', 'focused skip link becomes visible');
       if (viewportName === 'mobile') {
-        const box = await page.$eval('.menu-toggle', (element) => { const rect = element.getBoundingClientRect(); return { width: rect.width, height: rect.height }; });
+        const box = await page.$eval('.mobile-dock-menu', (element) => { const rect = element.getBoundingClientRect(); return { width: rect.width, height: rect.height }; });
         assert.ok(box.width >= 44 && box.height >= 44, 'phone menu trigger is at least 44px');
-        await page.click('.menu-toggle');
+        const scrollPositions = [0, 560, 1200];
+        for (const [index, scrollPosition] of scrollPositions.entries()) {
+          await page.evaluate((top) => {
+            document.documentElement.style.scrollBehavior = 'auto';
+            scrollTo(0, Math.min(top, document.documentElement.scrollHeight - innerHeight));
+          }, scrollPosition);
+          const expectedScroll = await page.evaluate(() => scrollY);
+          await page.$eval('.mobile-dock-menu', (element) => element.click());
+          await page.waitForFunction(() => {
+            const panel = document.querySelector('.mobile-menu-panel');
+            return panel?.open && Number(getComputedStyle(panel).opacity) > .98;
+          });
+          await page.waitForFunction(() => document.activeElement?.getAttribute('aria-label') === 'Close site navigation');
+          const menuState = await page.$eval('.mobile-menu-panel', (element) => {
+            const rect = element.getBoundingClientRect();
+            const topmost = document.elementFromPoint(innerWidth / 2, innerHeight / 2);
+            return {
+              rect: { top: rect.top, left: rect.left, width: rect.width, height: rect.height },
+              position: getComputedStyle(element).position,
+              zIndex: Number(getComputedStyle(element).zIndex),
+              topmost: Boolean(topmost?.closest('.mobile-menu-panel')),
+              scrollLock: document.documentElement.style.overflow,
+              lockedScrollY: scrollY,
+              dialogOpen: element.open,
+              activeLabel: document.activeElement?.getAttribute('aria-label'),
+            };
+          });
+          assert.deepEqual(menuState.rect, { top: 0, left: 0, width: 390, height: 844 }, `menu covers the viewport at scroll position ${expectedScroll}`);
+          assert.equal(menuState.position, 'fixed', 'menu is fixed to the viewport');
+          assert.ok(menuState.zIndex >= 1000, 'menu sits above the hero and page chrome');
+          assert.equal(menuState.topmost, true, 'menu is the top painted layer over the hero');
+          assert.equal(menuState.scrollLock, 'hidden', 'document scrolling is disabled while the menu is open');
+          assert.equal(menuState.dialogOpen, true, 'the modal dialog makes background content inert while the menu is open');
+          assert.equal(menuState.activeLabel, 'Close site navigation', 'focus moves into the menu');
+          const links = await page.$$eval('.mobile-menu-panel nav a', (elements) => elements.map((element) => { const rect = element.getBoundingClientRect(); return { height: rect.height, text: element.textContent?.trim() }; }));
+          assert.equal(links.length, 4, 'phone menu exposes only Home, Shop, App and Contact');
+          assert.ok(links.every((link) => link.height >= 44), 'all phone menu routes have large tap targets');
+          if (index === 0) await page.keyboard.press('Escape');
+          else if (index === 1) await page.$eval('.mobile-menu-close', (element) => element.click());
+          else await page.evaluate(() => history.back());
+          await page.waitForFunction(() => !document.querySelector('.mobile-menu-panel'));
+          await page.waitForFunction((top) => Math.abs(scrollY - top) <= 1, {}, expectedScroll);
+          assert.ok(Math.abs(await page.evaluate(() => scrollY) - expectedScroll) <= 1, 'closing the menu restores scroll position');
+        }
+        await page.$eval('.mobile-dock-menu', (element) => element.click());
         await page.waitForSelector('.mobile-menu-panel');
-        const links = await page.$$eval('.mobile-menu-panel nav a', (elements) => elements.map((element) => { const rect = element.getBoundingClientRect(); return { height: rect.height, text: element.textContent?.trim() }; }));
-        assert.equal(links.length, 4, 'phone menu exposes only Home, Shop, App and Contact');
-        assert.ok(links.every((link) => link.height >= 44), 'all phone menu routes have large tap targets');
-        await page.keyboard.press('Escape');
+        await page.waitForFunction(() => {
+          const style = getComputedStyle(document.querySelector('.mobile-menu-panel nav a[href="/shop/"]'));
+          const matrix = style.transform === 'none' ? new DOMMatrix() : new DOMMatrix(style.transform);
+          return Number(style.opacity) === 1 && Math.abs(matrix.m42) < .01;
+        });
+        await page.$eval('.mobile-menu-panel nav a[href="/shop/"]', (element) => element.click());
+        await page.waitForFunction(() => location.pathname === '/shop/');
         await page.waitForFunction(() => !document.querySelector('.mobile-menu-panel'));
+        assert.equal(new URL(page.url()).pathname, '/shop/', 'a menu link navigates to its destination');
+        assert.equal(await page.$('.mobile-menu-panel'), null, 'a menu link closes the overlay');
       } else {
         assert.equal(await page.$eval('.desktop-nav', (element) => getComputedStyle(element).display), 'flex', 'desktop navigation is visible');
       }
       const beforeTheme = await page.$eval('.site', (element) => element.className);
-      await page.click('.theme-toggle');
+      if (viewportName === 'mobile') {
+        await page.$eval('.mobile-dock-menu', (element) => element.click());
+        await page.waitForSelector('.mobile-menu-panel');
+        await page.click('.mobile-menu-actions .theme-toggle');
+      } else {
+        await page.click('.theme-toggle');
+      }
       const afterTheme = await page.$eval('.site', (element) => element.className);
       assert.notEqual(beforeTheme, afterTheme, 'theme control changes appearance');
+      if (viewportName === 'mobile') {
+        await page.keyboard.press('Escape');
+        await page.waitForFunction(() => !document.querySelector('.mobile-menu-panel'));
+      }
       await page.close();
     }
   }
