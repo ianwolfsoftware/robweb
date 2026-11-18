@@ -596,3 +596,6 @@ body.menu-is-open .site-header { transform: none !important; }
   .hero-stage .webgl-slot { display: block; top: auto; right: 3%; bottom: 3%; width: 44%; height: auto; aspect-ratio: 1; opacity: 1; z-index: 4; transform: none; filter: drop-shadow(0 .6rem 1rem rgb(0 0 0 / 55%)); }
   .hero-stage .webgl-slot span { display: none; }
 }
+
+/* 18 Nov 2026 (Ian): the star + "Videos, Tools & Jigs and RC Calculators" line under the portrait is removed. */
+.mobile-hero-statement { display: none !important; }
