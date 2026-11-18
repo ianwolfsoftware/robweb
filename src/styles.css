@@ -605,3 +605,18 @@ body.menu-is-open .site-header { transform: none !important; }
   .hero-copy .button-row .button-ghost { display: none; }
   .hero-copy .button-row .button { flex: 1; justify-content: center; min-height: 3.5rem; }
 }
+/* 18 Nov 2026 (Ian): the 3D RC logo is bigger, turns slowly, and sits half in / half out of the portrait's bottom-right corner.
+   .hero-frame wraps the clipped .hero-stage so the logo can overhang it; on larger screens it is layout-neutral. */
+.hero-frame { display: contents; }
+@keyframes rc-logo-turn { from { transform: translate(-50%, -50%) rotateY(0deg); } to { transform: translate(-50%, -50%) rotateY(360deg); } }
+.webgl-slot[data-state='fallback'] { perspective: 40rem; }
+.webgl-slot[data-state='fallback'] > img { animation: rc-logo-turn 15s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .webgl-slot[data-state='fallback'] > img { animation: none; } }
+@media (max-width: 41.99rem) {
+  .hero-frame { position: relative; display: block; width: min(60vw, 15rem); margin-inline: auto; }
+  .hero-frame > .hero-stage { width: 100%; margin-inline: 0; }
+  .hero-frame > .webgl-slot { display: block; position: absolute; z-index: 6; top: auto; right: -22%; bottom: -14%; width: 64%; height: auto; aspect-ratio: 1; opacity: 1; overflow: visible; transform: none; filter: drop-shadow(0 .8rem 1.2rem rgb(0 0 0 / 60%)); }
+  .hero-frame > .webgl-slot span { display: none; }
+  .hero-frame > .webgl-slot > img { width: 92%; height: 92%; opacity: 1; }
+}
+@media (max-width: 41.99rem) { .hero-copy .button-row { margin-top: 4.75rem; } }

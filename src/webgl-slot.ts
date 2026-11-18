@@ -63,7 +63,7 @@ export function mountWebglSlot(container: HTMLElement) {
     if (!visible || document.hidden) return;
     pointer.lerp(targetPointer, .035);
     const elapsed = clock.getElapsedTime();
-    logoRoot.rotation.y = -.38 + pointer.x * .13 + scrollProgress * .46 + Math.sin(elapsed * .36) * .055;
+    logoRoot.rotation.y = -.38 + elapsed * .42 + pointer.x * .13 + scrollProgress * .46; // 18 Nov 2026 (Ian): a slow, real turn (~15 s per revolution)
     logoRoot.rotation.x = -.08 + pointer.y * .075;
     logoRoot.rotation.z = -.045 + Math.sin(elapsed * .28) * .014;
     logoRoot.position.y = logoBaseY + Math.sin(elapsed * .48) * .035 - scrollProgress * .08;
