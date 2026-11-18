@@ -617,8 +617,6 @@ body.menu-is-open .site-header { transform: none !important; }
 .hero-frame { display: contents; }
 @keyframes rc-logo-turn { from { transform: translate(-50%, -50%) rotateY(0deg); } to { transform: translate(-50%, -50%) rotateY(360deg); } }
 .webgl-slot[data-state='fallback'] { perspective: 40rem; }
-.webgl-slot[data-state='fallback'] > img { animation: rc-logo-turn 15s linear infinite; }
-@media (prefers-reduced-motion: reduce) { .webgl-slot[data-state='fallback'] > img { animation: none; } }
 @media (max-width: 41.99rem) {
   .hero-frame { position: relative; display: block; width: min(60vw, 15rem); margin-inline: auto; }
   .hero-frame > .hero-stage { width: 100%; margin-inline: 0; }
@@ -627,3 +625,22 @@ body.menu-is-open .site-header { transform: none !important; }
   .hero-frame > .webgl-slot > img { width: 92%; height: 92%; opacity: 1; }
 }
 @media (max-width: 41.99rem) { .hero-copy .button-row { margin-top: 4.75rem; } }
+/* 18 Nov 2026 (Ian: "it's disappearing, it's not really 3D"): the still/fallback logo is a CSS-extruded stack of 14 layers
+   (dark steel sides, bright face) that swings about ±38°, so it reads as a solid object and never turns edge-on. */
+.webgl-slot { perspective: 34rem; }
+.webgl-slot .rc-stack { position: absolute; inset: 14%; transform-style: preserve-3d; animation: rc-swing 6.5s ease-in-out infinite alternate; }
+.webgl-slot .rc-stack img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: contain; backface-visibility: visible; }
+.webgl-slot .rc-stack .rc-stack-back { filter: brightness(.32) contrast(1.2); }
+.webgl-slot .rc-stack .rc-stack-front { filter: drop-shadow(0 0 .6rem rgb(245 166 35 / 35%)); }
+.webgl-slot[data-state='ready'] .rc-stack { display: none; }
+@keyframes rc-swing { from { transform: rotateY(-38deg) rotateX(7deg); } to { transform: rotateY(38deg) rotateX(-5deg); } }
+@media (prefers-reduced-motion: reduce) { .webgl-slot .rc-stack { animation: none; transform: rotateY(-18deg); } }
+/* 18 Nov 2026 (Ian): the logo spins steadily in one place (the stack is centred on its own thickness), and the app screens
+   rest on the bottom edge of their section instead of floating above it. */
+.webgl-slot .rc-stack { animation: rc-spin 11s linear infinite; }
+@keyframes rc-spin { from { transform: rotateX(-5deg) rotateY(0deg); } to { transform: rotateX(-5deg) rotateY(360deg); } }
+@media (prefers-reduced-motion: reduce) { .webgl-slot .rc-stack { animation: none; transform: rotateY(-18deg); } }
+.home-app-section { padding-bottom: 0; }
+.home-app-section .home-app-grid { align-items: end; }
+.home-app-section .app-screens { align-self: end; margin-bottom: 0; }
+.home-app-section .app-screens figure, .home-app-section .app-screens figure:first-child, .home-app-section .app-screens figure:last-child { transform: none; margin-bottom: 0; }
