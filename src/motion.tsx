@@ -6,67 +6,258 @@ type NavigatorWithHints = Navigator & {
   getBattery?: () => Promise<{ charging: boolean; level: number }>;
 };
 
+type MotionRuntime = {
+  gsap: typeof import('gsap')['gsap'];
+  ScrollTrigger: typeof import('gsap/ScrollTrigger')['ScrollTrigger'];
+  SplitText: typeof import('gsap/SplitText')['SplitText'];
+  Lenis: typeof import('lenis')['default'];
+};
+
+const timings = {
+  quick: .24,
+  normal: .62,
+  staggerCharacters: .018,
+  staggerContent: .06,
+  ease: 'power4.out',
+  easeInOut: 'expo.inOut',
+} as const;
+
+let runtimePromise: Promise<MotionRuntime> | undefined;
+
+function loadMotionRuntime() {
+  runtimePromise ??= Promise.all([
+    import('gsap'),
+    import('gsap/ScrollTrigger'),
+    import('gsap/SplitText'),
+    import('lenis'),
+  ]).then(([gsapModule, scrollModule, splitModule, lenisModule]) => {
+    const runtime = {
+      gsap: gsapModule.gsap,
+      ScrollTrigger: scrollModule.ScrollTrigger,
+      SplitText: splitModule.SplitText,
+      Lenis: lenisModule.default,
+    };
+    runtime.gsap.registerPlugin(runtime.ScrollTrigger, runtime.SplitText);
+    return runtime;
+  });
+  return runtimePromise;
+}
+
+function reducedMotion() {
+  return matchMedia('(prefers-reduced-motion: reduce)').matches;
+}
+
+export async function animateMenu(panel: HTMLElement) {
+  if (reducedMotion()) return;
+  const { gsap } = await loadMotionRuntime();
+  const links = panel.querySelectorAll('.mobile-menu-link');
+  gsap.timeline({ defaults: { ease: timings.ease } })
+    .fromTo(panel, { autoAlpha: 0 }, { autoAlpha: 1, duration: timings.quick })
+    .fromTo(links, { autoAlpha: 0, y: 34 }, {
+      autoAlpha: 1,
+      y: 0,
+      duration: timings.normal,
+      stagger: timings.staggerContent,
+    }, '-=.1');
+}
+
+export function MotionChrome() {
+  return <>
+    <div className="page-loader" data-motion-loader="idle" aria-hidden="true">
+      <span className="page-loader-mark"><img src="/brand/logo-steel.svg" width="441" height="224" alt="" /></span>
+      <span className="page-loader-line" />
+    </div>
+    <div className="motion-cursor" aria-hidden="true"><span /></div>
+  </>;
+}
+
 export function MotionPage({ path, children }: { path: string; children: ReactNode }) {
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
     const root = ref.current;
-    if (!root) return;
-    const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    if (reduced) return;
+    if (!root || reducedMotion()) return;
     document.documentElement.classList.add('motion-ready');
     const cleanups: Array<() => void> = [];
     let cancelled = false;
 
-    void import('animejs').then(({ animate, stagger }) => {
+    void loadMotionRuntime().then(({ gsap, ScrollTrigger, SplitText, Lenis }) => {
       if (cancelled) return;
-      animate(root, { opacity: [0, 1], translateY: [10, 0], duration: 360, ease: 'out(3)' });
-      animate(root.querySelectorAll('.hero-line'), { opacity: [0, 1], translateY: [34, 0], delay: stagger(85, { start: 80 }), duration: 720, ease: 'out(4)' });
-      animate(root.querySelectorAll('.hero-intro'), { opacity: [0, 1], translateY: [18, 0], delay: stagger(60, { start: 260 }), duration: 560, ease: 'out(3)' });
 
-      const revealObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const target = entry.target as HTMLElement;
-          animate(target, { opacity: [0, 1], translateY: [28, 0], duration: 620, ease: 'out(3)' });
-          target.dataset.revealState = 'done';
-          revealObserver.unobserve(target);
+      const loader = document.querySelector<HTMLElement>('[data-motion-loader]');
+      let showIntro = path === '/';
+      try {
+        showIntro = showIntro && sessionStorage.getItem('robweb-motion-intro') !== 'seen';
+        if (showIntro) sessionStorage.setItem('robweb-motion-intro', 'seen');
+      } catch { /* Session storage is an optional enhancement. */ }
+      if (loader) {
+        if (showIntro) {
+          loader.dataset.motionLoader = 'active';
+          gsap.timeline({ defaults: { ease: timings.easeInOut } })
+            .fromTo(loader.querySelector('.page-loader-mark'), { autoAlpha: 0, scale: .72, rotate: -8 }, { autoAlpha: 1, scale: 1, rotate: 0, duration: .48 })
+            .fromTo(loader.querySelector('.page-loader-line'), { scaleX: 0 }, { scaleX: 1, duration: .34 }, '-=.18')
+            .to(loader, { clipPath: 'inset(0 0 100% 0)', duration: .5, onComplete: () => { loader.dataset.motionLoader = 'done'; } }, '-=.04');
+        } else {
+          loader.dataset.motionLoader = 'done';
+        }
+      }
+
+      const lenis = new Lenis({
+        duration: 1.08,
+        smoothWheel: true,
+        syncTouch: false,
+        wheelMultiplier: .9,
+      });
+      document.documentElement.classList.add('lenis-active');
+      let rafId = 0;
+      const raf = (time: number) => {
+        lenis.raf(time);
+        rafId = requestAnimationFrame(raf);
+      };
+      rafId = requestAnimationFrame(raf);
+      cleanups.push(() => {
+        cancelAnimationFrame(rafId);
+        lenis.destroy();
+        document.documentElement.classList.remove('lenis-active');
+      });
+
+      const splits: Array<InstanceType<typeof SplitText>> = [];
+      root.querySelectorAll<HTMLElement>('[data-split]').forEach((element) => {
+        const split = SplitText.create(element, {
+          type: 'words,chars',
+          wordsClass: 'split-word',
+          charsClass: 'split-char',
+          aria: 'auto',
         });
-      }, { threshold: .08, rootMargin: '0px 0px -4% 0px' });
+        splits.push(split);
+        const hero = element.dataset.split === 'hero';
+        gsap.fromTo(split.chars, { yPercent: 118, rotate: 2 }, {
+          yPercent: 0,
+          rotate: 0,
+          duration: hero ? .92 : timings.normal,
+          delay: hero ? (showIntro ? .68 : .08) : 0,
+          stagger: timings.staggerCharacters,
+          ease: timings.ease,
+          immediateRender: hero,
+          scrollTrigger: hero ? undefined : { trigger: element, start: 'top 88%', once: true },
+        });
+      });
+      cleanups.push(() => splits.forEach((split) => split.revert()));
+
       root.querySelectorAll<HTMLElement>('[data-reveal]').forEach((element) => {
         element.dataset.revealState = 'watch';
-        revealObserver.observe(element);
-      });
-      cleanups.push(() => revealObserver.disconnect());
-
-      const countObserver = new IntersectionObserver((entries) => {
-        entries.forEach((entry) => {
-          if (!entry.isIntersecting) return;
-          const element = entry.target as HTMLElement;
-          const target = Number(element.dataset.count || element.textContent || 0);
-          animate(element, {
-            innerHTML: [0, target],
-            modifier: (value: number) => String(Math.round(value)),
-            duration: 1250,
-            ease: 'out(4)',
-          });
-          countObserver.unobserve(element);
+        gsap.fromTo(element, { autoAlpha: 0, y: 38 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: timings.normal,
+          ease: timings.ease,
+          immediateRender: false,
+          scrollTrigger: { trigger: element, start: 'top 91%', once: true },
+          onComplete: () => { element.dataset.revealState = 'done'; },
         });
-      }, { threshold: .7 });
-      root.querySelectorAll<HTMLElement>('[data-count]').forEach((element) => countObserver.observe(element));
-      cleanups.push(() => countObserver.disconnect());
+      });
 
-      const track = root.querySelector<HTMLElement>('.marquee-track');
-      if (track) animate(track, { translateX: [0, -(track.scrollWidth / 2)], duration: 42000, ease: 'linear', loop: true });
+      root.querySelectorAll<HTMLElement>('[data-reveal-group]').forEach((group) => {
+        gsap.fromTo(group.children, { autoAlpha: 0, y: 30 }, {
+          autoAlpha: 1,
+          y: 0,
+          duration: timings.normal,
+          stagger: timings.staggerContent,
+          ease: timings.ease,
+          immediateRender: false,
+          scrollTrigger: { trigger: group, start: 'top 90%', once: true },
+        });
+      });
+
+      const heroImage = root.querySelector('.hero-photo img');
+      if (heroImage) {
+        gsap.fromTo(heroImage, { scale: 1.035, yPercent: -1.5 }, {
+          scale: 1.09,
+          yPercent: 7,
+          ease: 'none',
+          scrollTrigger: { trigger: '.home-hero', start: 'top top', end: 'bottom top', scrub: .65 },
+        });
+      }
+
+      const marquee = root.querySelector<HTMLElement>('[data-marquee-track]');
+      const marqueeTween = marquee ? gsap.to(marquee, { xPercent: -50, duration: 24, ease: 'none', repeat: -1 }) : null;
+      let marqueeDirection = 1;
+      let navHidden = false;
+      const header = document.querySelector<HTMLElement>('.site-header');
+      const onScroll = ({ direction, velocity }: { direction: number; velocity: number }) => {
+        if (marqueeTween && direction && direction !== marqueeDirection) {
+          marqueeDirection = direction;
+          gsap.to(marqueeTween, { timeScale: direction > 0 ? 1 : -1, duration: timings.normal, ease: timings.ease });
+        }
+        const shouldHide = direction > 0 && Math.abs(velocity) > .25 && window.scrollY > 140;
+        const shouldShow = direction < 0 || window.scrollY <= 20;
+        if (header && ((shouldHide && !navHidden) || (shouldShow && navHidden))) {
+          navHidden = shouldHide;
+          gsap.to(header, { yPercent: navHidden ? -110 : 0, duration: timings.quick, ease: 'power3.out', overwrite: true });
+        }
+      };
+      lenis.on('scroll', onScroll);
+      cleanups.push(() => lenis.off('scroll', onScroll));
+
+      const spark = root.querySelector('.marquee-spark');
+      if (spark) {
+        gsap.to(spark, { rotate: 240, ease: 'none', scrollTrigger: { trigger: spark, start: 'top bottom', end: 'bottom top', scrub: .5 } });
+      }
+
+      const footerGradient = document.querySelector<HTMLElement>('.footer-gradient');
+      if (footerGradient) {
+        const footerTween = gsap.to(footerGradient, { xPercent: 34, rotate: 10, duration: 7, yoyo: true, repeat: -1, ease: 'sine.inOut', paused: true });
+        ScrollTrigger.create({
+          trigger: footerGradient,
+          start: 'top bottom',
+          end: 'bottom top',
+          onEnter: () => footerTween.play(),
+          onEnterBack: () => footerTween.play(),
+          onLeave: () => footerTween.pause(),
+          onLeaveBack: () => footerTween.pause(),
+        });
+      }
+
+      const linkSplits: Array<InstanceType<typeof SplitText>> = [];
+      document.querySelectorAll<HTMLElement>('[data-link-label]').forEach((label) => {
+        const split = SplitText.create(label, { type: 'chars', charsClass: 'link-char', aria: 'auto' });
+        linkSplits.push(split);
+        const link = label.closest('a');
+        if (!link) return;
+        const enter = () => {
+          gsap.timeline().to(split.chars, { yPercent: -115, autoAlpha: 0, duration: .16, stagger: .012, ease: 'power2.in' })
+            .set(split.chars, { yPercent: 115 })
+            .to(split.chars, { yPercent: 0, autoAlpha: 1, duration: .32, stagger: .012, ease: timings.ease });
+        };
+        link.addEventListener('pointerenter', enter);
+        cleanups.push(() => link.removeEventListener('pointerenter', enter));
+      });
+      cleanups.push(() => linkSplits.forEach((split) => split.revert()));
+
+      if (matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        const cursor = document.querySelector<HTMLElement>('.motion-cursor');
+        if (cursor) {
+          const xTo = gsap.quickTo(cursor, 'x', { duration: .28, ease: 'power3.out' });
+          const yTo = gsap.quickTo(cursor, 'y', { duration: .28, ease: 'power3.out' });
+          const move = (event: PointerEvent) => { cursor.dataset.visible = 'true'; xTo(event.clientX); yTo(event.clientY); };
+          const leave = () => { cursor.dataset.visible = 'false'; };
+          window.addEventListener('pointermove', move, { passive: true });
+          document.documentElement.addEventListener('mouseleave', leave);
+          cleanups.push(() => { window.removeEventListener('pointermove', move); document.documentElement.removeEventListener('mouseleave', leave); });
+        }
+      }
 
       root.querySelectorAll<HTMLElement>('[data-magnetic]').forEach((button) => {
         const move = (event: PointerEvent) => {
           if (event.pointerType === 'touch') return;
           const box = button.getBoundingClientRect();
-          const x = (event.clientX - box.left - box.width / 2) * .13;
-          const y = (event.clientY - box.top - box.height / 2) * .16;
-          animate(button, { translateX: x, translateY: y, duration: 220, ease: 'out(3)' });
+          gsap.to(button, {
+            x: (event.clientX - box.left - box.width / 2) * .13,
+            y: (event.clientY - box.top - box.height / 2) * .16,
+            duration: timings.quick,
+            ease: timings.ease,
+          });
         };
-        const leave = () => animate(button, { translateX: 0, translateY: 0, duration: 480, ease: 'out(5)' });
+        const leave = () => gsap.to(button, { x: 0, y: 0, duration: timings.normal, ease: timings.ease });
         button.addEventListener('pointermove', move);
         button.addEventListener('pointerleave', leave);
         cleanups.push(() => { button.removeEventListener('pointermove', move); button.removeEventListener('pointerleave', leave); });
@@ -79,15 +270,18 @@ export function MotionPage({ path, children }: { path: string; children: ReactNo
         const url = new URL(anchor.href, location.href);
         if (url.origin !== location.origin || url.pathname === location.pathname || url.pathname.startsWith('/go/')) return;
         event.preventDefault();
-        animate(root, { opacity: [1, 0], translateY: [0, -8], duration: 180, ease: 'in(2)', onComplete: () => { location.href = url.href; } });
+        gsap.to(root, { autoAlpha: 0, y: -10, duration: timings.quick, ease: 'power2.in', onComplete: () => { location.href = url.href; } });
       };
       document.addEventListener('click', transition);
       cleanups.push(() => document.removeEventListener('click', transition));
+
+      ScrollTrigger.refresh();
+      cleanups.push(() => ScrollTrigger.getAll().forEach((trigger) => trigger.kill()));
     });
 
     return () => {
       cancelled = true;
-      cleanups.forEach((cleanup) => cleanup());
+      cleanups.reverse().forEach((cleanup) => cleanup());
       document.documentElement.classList.remove('motion-ready');
     };
   }, [path]);
@@ -110,7 +304,7 @@ export function WebglSlot() {
     };
     const gate = async () => {
       const hints = navigator as NavigatorWithHints;
-      if (matchMedia('(prefers-reduced-motion: reduce)').matches) return 'reduced-motion';
+      if (reducedMotion()) return 'reduced-motion';
       if (hints.connection?.saveData) return 'save-data';
       if (hints.deviceMemory && hints.deviceMemory <= 2) return 'low-memory';
       if (hints.hardwareConcurrency && hints.hardwareConcurrency <= 2) return 'low-cpu';

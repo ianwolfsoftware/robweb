@@ -73,6 +73,7 @@ try {
         await page.waitForSelector(`.site.theme-${theme}`);
         await new Promise((resolve) => setTimeout(resolve, 120));
         if (route === '/') {
+          await page.waitForFunction(() => document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader') === 'done', { timeout: 4000 });
           await page.waitForFunction(() => ['.hero-logo', '.hero-title', '.home-hero .button-row'].every((selector) => {
             const element = document.querySelector(selector);
             if (!element) return false;
@@ -96,6 +97,10 @@ try {
           heroPreloads: document.querySelectorAll('link[rel="preload"][as="image"][href*="/hero-robin/"]').length,
           heroParagraphs: document.querySelectorAll('.home-hero p').length,
           heroLinks: [...document.querySelectorAll('.home-hero nav a')].map((link) => link.getAttribute('href')),
+          motionLoader: document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader'),
+          lenisActive: document.documentElement.classList.contains('lenis-active'),
+          splitCharacters: document.querySelectorAll('.hero-title .split-char').length,
+          marqueeGroups: document.querySelectorAll('.name-marquee-group').length,
           heroControlsVisible: ['.hero-logo', '.hero-title', '.home-hero .button-row'].every((selector) => {
             const element = document.querySelector(selector);
             if (!element) return false;
@@ -125,6 +130,10 @@ try {
           assert.equal(summary.heroParagraphs, 0, 'home hero contains no tagline or marketing copy');
           assert.deepEqual(summary.heroLinks, ['/shop/', '/app/'], 'home hero exposes only Products and App entry points');
           assert.equal(summary.heroControlsVisible, true, 'home hero logo, name and actions are visibly settled');
+          assert.equal(summary.motionLoader, 'done', 'home branded loader completes before acceptance');
+          assert.equal(summary.lenisActive, true, 'home initialises the shared Lenis motion runtime');
+          assert.equal(summary.splitCharacters, 12, 'home wordmark is prepared for GSAP character staggers');
+          assert.equal(summary.marqueeGroups, 2, 'home provides two seamless direction-aware marquee groups');
           assert.equal(summary.heroPreloads, 2, 'home preloads the viewport-appropriate AVIF hero source');
           assert.ok(summary.heroImage?.naturalWidth > 0, 'home hero image is decoded');
           assert.equal(summary.heroImage?.fetchPriority, 'high', 'home hero image has high fetch priority');
@@ -200,8 +209,14 @@ try {
   await reduced.setViewport({ width: 390, height: 844, isMobile: true, deviceScaleFactor: 1 });
   await reduced.emulateMediaFeatures([{ name: 'prefers-reduced-motion', value: 'reduce' }]);
   await reduced.goto(baseUrl, { waitUntil: 'networkidle0' });
-  const reducedState = await reduced.$eval('.home-hero', (element) => ({ hero: element.querySelector('img')?.complete ? 'static-photo' : 'missing', webgl: Boolean(element.querySelector('canvas, .webgl-slot')) }));
-  assert.deepEqual(reducedState, { hero: 'static-photo', webgl: false }, 'reduced motion keeps the static photo hero without a canvas layer');
+  const reducedState = await reduced.$eval('.home-hero', (element) => ({
+    hero: element.querySelector('img')?.complete ? 'static-photo' : 'missing',
+    webgl: Boolean(element.querySelector('canvas, .webgl-slot')),
+    smoothScroll: document.documentElement.classList.contains('lenis-active'),
+    splitCharacters: element.querySelectorAll('.split-char').length,
+    loaderDisplay: getComputedStyle(document.querySelector('.page-loader')).display,
+  }));
+  assert.deepEqual(reducedState, { hero: 'static-photo', webgl: false, smoothScroll: false, splitCharacters: 0, loaderDisplay: 'none' }, 'reduced motion keeps static content and skips the loader, smooth scroll, text splitting and canvas layer');
   await reduced.close();
 
   const performancePage = await browser.newPage();
