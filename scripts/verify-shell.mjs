@@ -103,6 +103,9 @@ try {
           heroLinks: [...document.querySelectorAll('.home-hero nav a')].map((link) => link.getAttribute('href')),
           motionLoader: document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader'),
           lenisActive: document.documentElement.classList.contains('lenis-active'),
+          phoneMotionMode: document.querySelector('[data-motion-page]')?.getAttribute('data-phone-motion') || null,
+          phoneMotionReady: document.documentElement.classList.contains('motion-compact-ready'),
+          phoneRevealWatching: document.querySelectorAll('[data-phone-reveal-state="watch"]').length,
           splitCharacters: document.querySelectorAll('.hero-title .split-char').length,
           marqueeGroups: document.querySelectorAll('.name-marquee-group').length,
           heroControlsVisible: (innerWidth < 672 ? ['.hero-stage', '.mobile-hero-statement', '.hero-title'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
@@ -153,6 +156,9 @@ try {
           assert.equal(summary.mobileDock, true, 'phone home provides fixed logo and Menu controls in the thumb zone');
           assert.equal(summary.motionLoader, 'done', 'home branded loader completes before acceptance');
           assert.equal(summary.lenisActive, viewportName === 'desktop', viewportName === 'mobile' ? 'compact home avoids the desktop smooth-scroll runtime' : 'desktop home initialises the shared Lenis motion runtime');
+          assert.equal(summary.phoneMotionMode, viewportName === 'mobile' ? 'ready' : null, viewportName === 'mobile' ? 'phone home starts the lightweight shared choreography' : 'desktop does not start the compact motion path');
+          assert.equal(summary.phoneMotionReady, viewportName === 'mobile', 'only phone uses the compact motion-ready state');
+          assert.equal(summary.phoneRevealWatching > 0, viewportName === 'mobile', viewportName === 'mobile' ? 'phone registers below-fold reveals' : 'desktop leaves compact reveal state unused');
           assert.equal(summary.splitCharacters, viewportName === 'desktop' ? 12 : 0, viewportName === 'mobile' ? 'compact home keeps the wordmark immediately visible without JS splitting' : 'desktop wordmark is prepared for GSAP character staggers');
           assert.equal(summary.marqueeGroups, 2, 'home provides two seamless direction-aware marquee groups');
           assert.equal(summary.heroPreloads, 2, 'home preloads the viewport-appropriate AVIF hero source');
@@ -177,6 +183,32 @@ try {
           assert.match(appCopy, /£254\.99/, 'app shows the approved yearly price');
           assert.equal(await page.$$eval('.app-screens img', (images) => images.length), 2, 'app shows light and dark V3 design screens');
         }
+        let phoneChoreography = null;
+        if (route === '/' && viewportName === 'mobile') {
+          const initial = await page.evaluate(() => ({
+            portrait: getComputedStyle(document.querySelector('[data-hero-portrait]')).transform,
+            marquee: getComputedStyle(document.querySelector('[data-marquee-track]')).transform,
+            revealDone: document.querySelectorAll('[data-phone-reveal-state="done"]').length,
+          }));
+          const revealTarget = await page.$eval('[data-phone-reveal-state="watch"]', (element) => Math.max(400, scrollY + element.getBoundingClientRect().top - innerHeight * .62));
+          await page.evaluate((top) => scrollTo({ top, behavior: 'instant' }), revealTarget);
+          await new Promise((resolve) => setTimeout(resolve, 220));
+          const forward = await page.evaluate(() => ({
+            portrait: getComputedStyle(document.querySelector('[data-hero-portrait]')).transform,
+            marquee: getComputedStyle(document.querySelector('[data-marquee-track]')).transform,
+            direction: document.querySelector('[data-motion-page]')?.getAttribute('data-phone-scroll-direction'),
+            revealDone: document.querySelectorAll('[data-phone-reveal-state="done"]').length,
+          }));
+          await page.evaluate(() => scrollTo({ top: 120, behavior: 'instant' }));
+          await new Promise((resolve) => setTimeout(resolve, 120));
+          const backDirection = await page.$eval('[data-motion-page]', (element) => element.getAttribute('data-phone-scroll-direction'));
+          assert.notEqual(forward.portrait, initial.portrait, 'phone portrait gains scroll-linked depth without a heavyweight runtime');
+          assert.notEqual(forward.marquee, initial.marquee, 'phone marquee advances while its band is active');
+          assert.ok(forward.revealDone > initial.revealDone, 'phone reveals below-fold content as it enters the viewport');
+          assert.equal(forward.direction, 'forward', 'phone choreography records forward scroll direction');
+          assert.equal(backDirection, 'back', 'phone choreography reverses direction on upward scroll');
+          phoneChoreography = { initial, forward, backDirection };
+        }
         await page.evaluate(async () => {
           document.querySelectorAll('img[loading="lazy"]').forEach((image) => { image.loading = 'eager'; });
           const pause = () => new Promise((resolve) => setTimeout(resolve, 120));
@@ -192,7 +224,7 @@ try {
         await new Promise((resolve) => setTimeout(resolve, 350));
         const screenshot = evidenceDir ? `${evidenceDir}/${theme}-${viewportName}-${slug}.png` : null;
         if (screenshot) await page.screenshot({ path: screenshot, fullPage: true });
-        results.push({ route, slug, viewport: viewportName, theme, status: response?.status(), screenshot, ...summary });
+        results.push({ route, slug, viewport: viewportName, theme, status: response?.status(), screenshot, phoneChoreography, ...summary });
       }
 
       await page.goto(baseUrl, { waitUntil: 'networkidle0' });
@@ -305,8 +337,20 @@ try {
     splitCharacters: element.querySelectorAll('.split-char').length,
     loaderDisplay: getComputedStyle(document.querySelector('.page-loader')).display,
     lightSweepDisplay: getComputedStyle(element.querySelector('[data-hero-light]')).display,
+    phoneMotionMode: document.querySelector('[data-motion-page]')?.getAttribute('data-phone-motion') || null,
+    revealStates: document.querySelectorAll('[data-phone-reveal-state]').length,
+    portraitTransform: getComputedStyle(element.querySelector('[data-hero-portrait]')).transform,
+    marqueeTransform: getComputedStyle(document.querySelector('[data-marquee-track]')).transform,
   }));
-  assert.deepEqual(reducedState, { hero: 'static-portrait', webglState: 'fallback', webglReason: 'reduced-motion', webglCanvas: false, smoothScroll: false, splitCharacters: 0, loaderDisplay: 'none', lightSweepDisplay: 'none' }, 'reduced motion keeps static portrait/logo fallbacks and skips the loader, smooth scroll, text splitting, sweep and canvas layer');
+  await reduced.evaluate(() => scrollTo({ top: 900, behavior: 'instant' }));
+  await new Promise((resolve) => setTimeout(resolve, 220));
+  const reducedAfterScroll = await reduced.$eval('.home-hero', (element) => ({
+    portraitTransform: getComputedStyle(element.querySelector('[data-hero-portrait]')).transform,
+    marqueeTransform: getComputedStyle(document.querySelector('[data-marquee-track]')).transform,
+    revealStates: document.querySelectorAll('[data-phone-reveal-state]').length,
+  }));
+  assert.deepEqual(reducedState, { hero: 'static-portrait', webglState: 'fallback', webglReason: 'reduced-motion', webglCanvas: false, smoothScroll: false, splitCharacters: 0, loaderDisplay: 'none', lightSweepDisplay: 'none', phoneMotionMode: null, revealStates: 0, portraitTransform: 'none', marqueeTransform: reducedState.marqueeTransform }, 'reduced motion keeps static portrait/logo fallbacks and skips every choreography runtime');
+  assert.deepEqual(reducedAfterScroll, { portraitTransform: reducedState.portraitTransform, marqueeTransform: reducedState.marqueeTransform, revealStates: 0 }, 'reduced motion remains visually static after scrolling');
   await reduced.close();
 
   const lowPower = await browser.newPage();
@@ -314,8 +358,8 @@ try {
   await lowPower.evaluateOnNewDocument(() => { Object.defineProperty(navigator, 'deviceMemory', { configurable: true, get: () => 1 }); });
   await lowPower.goto(baseUrl, { waitUntil: 'networkidle0' });
   await lowPower.waitForFunction(() => document.querySelector('.webgl-slot')?.getAttribute('data-state') === 'fallback');
-  const lowPowerState = await lowPower.$eval('.webgl-slot', (element) => ({ state: element.getAttribute('data-state'), reason: element.getAttribute('data-webgl-reason'), canvas: Boolean(element.querySelector('canvas')), fallback: Boolean(element.querySelector('img')) }));
-  assert.deepEqual(lowPowerState, { state: 'fallback', reason: 'low-memory', canvas: false, fallback: true }, 'low-memory phones keep the static RC mark and never create a Three.js canvas');
+  const lowPowerState = await lowPower.$eval('.webgl-slot', (element) => ({ state: element.getAttribute('data-state'), reason: element.getAttribute('data-webgl-reason'), canvas: Boolean(element.querySelector('canvas')), fallback: Boolean(element.querySelector('img')), phoneMotionMode: document.querySelector('[data-motion-page]')?.getAttribute('data-phone-motion'), revealStates: document.querySelectorAll('[data-phone-reveal-state]').length }));
+  assert.deepEqual(lowPowerState, { state: 'fallback', reason: 'low-memory', canvas: false, fallback: true, phoneMotionMode: 'static', revealStates: 0 }, 'low-memory phones keep static motion/RC fallbacks and never create a Three.js canvas');
   await lowPower.close();
 
   const scenePage = await browser.newPage();
@@ -357,7 +401,7 @@ try {
   await browser.close();
   assert.deepEqual(errors, [], `browser errors: ${errors.join('; ')}`);
   assert.deepEqual([...externalRequests], [], `unexpected external requests: ${[...externalRequests].join(', ')}`);
-  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, permanentRedirects: redirects.length, results, reducedMotion: reducedState, lowPower: lowPowerState, logoScene, performance, externalRequests: [] };
+  const evidence = { ok: true, generatedAt: new Date().toISOString(), screenshotCount: results.length, routes: routes.length, combinations: 4, permanentRedirects: redirects.length, results, reducedMotion: { beforeScroll: reducedState, afterScroll: reducedAfterScroll }, lowPower: lowPowerState, logoScene, performance, externalRequests: [] };
   if (evidenceDir) await writeFile(`${evidenceDir}/browser-evidence.json`, `${JSON.stringify(evidence, null, 2)}\n`);
   console.log(JSON.stringify({ ok: true, screenshots: results.length, routes: routes.length, reducedMotion: reducedState, performance, externalRequests: [] }));
 } finally {
