@@ -74,7 +74,7 @@ try {
         await new Promise((resolve) => setTimeout(resolve, 120));
         if (route === '/') {
           await page.waitForFunction(() => document.querySelector('[data-motion-loader]')?.getAttribute('data-motion-loader') === 'done', { timeout: 4000 });
-          await page.waitForFunction(() => (innerWidth < 672 ? ['.hero-stage', '.mobile-hero-statement', '.hero-title'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
+          await page.waitForFunction(() => (innerWidth < 672 ? ['.hero-stage', '.home-hero .button-row'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
             const element = document.querySelector(selector);
             if (!element) return false;
             const box = element.getBoundingClientRect();
@@ -108,17 +108,21 @@ try {
           phoneRevealWatching: document.querySelectorAll('[data-phone-reveal-state="watch"]').length,
           splitCharacters: document.querySelectorAll('.hero-title .split-char').length,
           marqueeGroups: document.querySelectorAll('.name-marquee-group').length,
-          heroControlsVisible: (innerWidth < 672 ? ['.hero-stage', '.mobile-hero-statement', '.hero-title'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
+          phoneMarqueeVisible: innerWidth < 672 && Boolean(document.querySelector('[data-marquee-track]')?.getClientRects().length),
+          heroControlsVisible: (innerWidth < 672 ? ['.hero-stage', '.home-hero .button-row'] : ['.hero-logo', '.hero-title', '.home-hero .button-row']).every((selector) => {
             const element = document.querySelector(selector);
             if (!element) return false;
             const box = element.getBoundingClientRect();
             const style = getComputedStyle(element);
             return Number(style.opacity) >= .99 && style.visibility === 'visible' && box.width > 0 && box.height > 0;
           }),
-          mobileTopLine: innerWidth >= 672 || ['.mobile-header-name', '.mobile-header-label'].every((selector) => {
-            const element = document.querySelector(selector);
-            return element && getComputedStyle(element).display !== 'none' && element.getBoundingClientRect().height > 0;
-          }),
+          mobileHeaderHidden: innerWidth >= 672 || getComputedStyle(document.querySelector('.site-header')).display === 'none',
+          mobileWordmarkHidden: innerWidth >= 672 || (() => {
+            const wordmark = document.querySelector('.hero-title');
+            if (!wordmark) return false;
+            const box = wordmark.getBoundingClientRect();
+            return box.width <= 1 && box.height <= 1;
+          })(),
           mobilePortraitCard: innerWidth >= 672 || (() => {
             const stage = document.querySelector('.hero-stage');
             if (!stage) return false;
@@ -150,8 +154,9 @@ try {
           assert.match(summary.h1, /^RobinClevett$/, 'home hero names Robin without a tagline');
           assert.equal(summary.heroParagraphs, 0, 'home hero contains no tagline or marketing copy');
           assert.deepEqual(summary.heroLinks, ['/shop/', '/app/'], 'home hero exposes only Products and App entry points');
-          assert.equal(summary.heroControlsVisible, true, 'home hero logo, name and actions are visibly settled');
-          assert.equal(summary.mobileTopLine, true, 'phone home uses the minimal Robin/name top line');
+          assert.equal(summary.heroControlsVisible, true, 'home hero portrait/brand and actions are visibly settled');
+          assert.equal(summary.mobileHeaderHidden, true, 'phone home omits the redundant top bar');
+          assert.equal(summary.mobileWordmarkHidden, true, 'phone home keeps Robin Clevett as its accessible H1 without duplicating the visible name');
           assert.equal(summary.mobilePortraitCard, true, 'phone home uses a tall rounded portrait card');
           assert.equal(summary.mobileDock, true, 'phone home provides fixed logo and Menu controls in the thumb zone');
           assert.equal(summary.motionLoader, 'done', 'home branded loader completes before acceptance');
@@ -160,17 +165,16 @@ try {
           assert.equal(summary.phoneMotionReady, viewportName === 'mobile', 'only phone uses the compact motion-ready state');
           assert.equal(summary.phoneRevealWatching > 0, viewportName === 'mobile', viewportName === 'mobile' ? 'phone registers below-fold reveals' : 'desktop leaves compact reveal state unused');
           assert.equal(summary.splitCharacters, viewportName === 'desktop' ? 12 : 0, viewportName === 'mobile' ? 'compact home keeps the wordmark immediately visible without JS splitting' : 'desktop wordmark is prepared for GSAP character staggers');
-          assert.equal(summary.marqueeGroups, 2, 'home provides two seamless direction-aware marquee groups');
+          assert.equal(summary.marqueeGroups, 2, 'home retains two seamless direction-aware marquee groups for larger screens');
+          assert.equal(summary.phoneMarqueeVisible, false, 'phone keeps the superseded duplicate name marquee out of the composition');
           assert.equal(summary.heroPreloads, 2, 'home preloads the viewport-appropriate AVIF hero source');
           assert.equal(summary.portraitSources, 4, 'home supplies compact and desktop AVIF/WebP portrait sources');
           assert.equal(summary.lightSweep, true, 'home provides the scroll-scrubbed portrait light layer');
           assert.ok(summary.heroImage?.naturalWidth > 0, 'home hero image is decoded');
           assert.equal(summary.heroImage?.fetchPriority, 'high', 'home hero image has high fetch priority');
           assert.match(summary.heroImage?.currentSrc || '', /robin-portrait-(480-static|800|1200)\.webp$/, 'home selects a responsive portrait WebP source');
-          const expectedLogoScene = viewportName === 'mobile'
-            ? { state: 'fallback', dpr: 0, canvas: false, paused: null }
-            : { state: 'ready', dpr: Math.min(viewport.deviceScaleFactor, 2), canvas: true, paused: 'false' };
-          assert.deepEqual(summary.logoScene, expectedLogoScene, viewportName === 'mobile' ? 'compact screens keep the designed static RC fallback' : 'capable desktops render the real RC SVG through the capped Three.js scene');
+          const expectedLogoScene = { state: 'ready', dpr: Math.min(viewport.deviceScaleFactor, 2), canvas: true, paused: 'false' };
+          assert.deepEqual(summary.logoScene, expectedLogoScene, 'capable screens render the real RC SVG through the capped Three.js scene');
         }
         if (route === '/shop/') {
           assert.equal(await page.$$eval('.product-card', (cards) => cards.length), 11, 'shop renders all 11 committed Shopify products');
@@ -188,6 +192,7 @@ try {
           const initial = await page.evaluate(() => ({
             portrait: getComputedStyle(document.querySelector('[data-hero-portrait]')).transform,
             marquee: getComputedStyle(document.querySelector('[data-marquee-track]')).transform,
+            marqueeVisible: Boolean(document.querySelector('[data-marquee-track]')?.getClientRects().length),
             revealDone: document.querySelectorAll('[data-phone-reveal-state="done"]').length,
           }));
           const revealTarget = await page.$eval('[data-phone-reveal-state="watch"]', (element) => Math.max(400, scrollY + element.getBoundingClientRect().top - innerHeight * .62));
@@ -203,7 +208,8 @@ try {
           await new Promise((resolve) => setTimeout(resolve, 120));
           const backDirection = await page.$eval('[data-motion-page]', (element) => element.getAttribute('data-phone-scroll-direction'));
           assert.notEqual(forward.portrait, initial.portrait, 'phone portrait gains scroll-linked depth without a heavyweight runtime');
-          assert.notEqual(forward.marquee, initial.marquee, 'phone marquee advances while its band is active');
+          assert.equal(initial.marqueeVisible, false, 'phone does not animate the superseded hidden name marquee');
+          assert.equal(forward.marquee, initial.marquee, 'hidden phone marquee remains visually static');
           assert.ok(forward.revealDone > initial.revealDone, 'phone reveals below-fold content as it enters the viewport');
           assert.equal(forward.direction, 'forward', 'phone choreography records forward scroll direction');
           assert.equal(backDirection, 'back', 'phone choreography reverses direction on upward scroll');

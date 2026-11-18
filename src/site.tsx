@@ -156,10 +156,12 @@ function AppScreens({ compact = false }: { compact?: boolean }) {
 // stage; on larger screens it stays inside the stage, behind the portrait, as before. One instance at a time.
 const PHONE_QUERY = '(max-width: 41.99rem)';
 function usePhone() {
-  const [phone, setPhone] = useState(() => typeof matchMedia !== 'undefined' && matchMedia(PHONE_QUERY).matches);
+  // Match the prerendered desktop-shaped tree for hydration, then move the single WebGL slot after mount.
+  const [phone, setPhone] = useState(false);
   useEffect(() => {
     const query = matchMedia(PHONE_QUERY);
     const update = () => setPhone(query.matches);
+    update();
     query.addEventListener('change', update);
     return () => query.removeEventListener('change', update);
   }, []);
